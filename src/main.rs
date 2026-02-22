@@ -2,9 +2,10 @@ mod app;
 mod git;
 
 use crate::app::App;
+use eframe::NativeOptions;
 
 fn main() -> eframe::Result {
-    let options = eframe::NativeOptions {
+    let options = NativeOptions {
         ..Default::default()
     };
 
