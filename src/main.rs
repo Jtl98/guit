@@ -1,4 +1,5 @@
 mod app;
+mod git;
 
 use crate::app::App;
 
