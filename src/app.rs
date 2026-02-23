@@ -1,7 +1,7 @@
 use crate::git::Git;
 use eframe::{
     Frame,
-    egui::{Button, CentralPanel, Context},
+    egui::{Button, CentralPanel, Context, TopBottomPanel},
 };
 
 #[derive(Default)]
@@ -11,16 +11,18 @@ pub struct App {
 
 impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
-        CentralPanel::default().show(ctx, |ui| {
-            let is_executing = self.git.is_executing();
+        let is_executing = self.git.is_executing();
 
-            ui.heading("guit");
-
+        TopBottomPanel::top("menu").show(ctx, |ui| {
             if ui.add_enabled(!is_executing, Button::new("pull")).clicked() {
                 self.git.pull();
             }
-
-            self.git.update();
         });
+
+        CentralPanel::default().show(ctx, |ui| {
+            ui.heading("guit");
+        });
+
+        self.git.update();
     }
 }
