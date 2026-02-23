@@ -4,13 +4,15 @@ use eframe::{
     egui::{Button, CentralPanel, Context, ScrollArea, SidePanel, TopBottomPanel},
 };
 use std::{
-    sync::Arc,
+    sync::{Arc, RwLock},
     thread::{self},
 };
 
 #[derive(Default)]
 pub struct App {
     git: Arc<Git>,
+    files: Arc<RwLock<Vec<String>>>,
+    selected_file: Option<String>,
 }
 
 impl eframe::App for App {
@@ -36,7 +38,37 @@ impl eframe::App for App {
         SidePanel::left("files").show(ctx, |ui| {
             ScrollArea::both().show(ui, |ui| {
                 ui.take_available_space();
-                ui.heading("files");
+
+                if ui
+                    .add_enabled(!is_executing, Button::new("refresh"))
+                    .clicked()
+                {
+                    let git = Arc::clone(&self.git);
+                    let files = Arc::clone(&self.files);
+                    let ctx = ctx.clone();
+
+                    thread::spawn(move || {
+                        match git.diff_name_only() {
+                            Ok(output) => {
+                                let new_files = output
+                                    .stdout
+                                    .split(|byte| *byte == b'\n')
+                                    .map(|bytes| String::from_utf8_lossy(bytes).to_string())
+                                    .collect();
+
+                                let mut files = files.write().unwrap();
+                                *files = new_files;
+                            }
+                            Err(error) => eprintln!("{}", error),
+                        }
+
+                        ctx.request_repaint();
+                    });
+                }
+
+                for file in self.files.read().unwrap().iter() {
+                    ui.selectable_value(&mut self.selected_file, Some(file.to_owned()), file);
+                }
             });
         });
 

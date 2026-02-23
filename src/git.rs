@@ -8,6 +8,10 @@ use std::{
 pub struct Git;
 
 impl Git {
+    pub fn diff_name_only(&self) -> io::Result<Output> {
+        self.execute(["diff", "--name-only"])
+    }
+
     pub fn pull(&self) -> io::Result<Output> {
         self.execute(["pull"])
     }
