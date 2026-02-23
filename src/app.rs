@@ -13,6 +13,7 @@ pub struct App {
     git: Arc<Git>,
     paths: Arc<RwLock<Vec<String>>>,
     selected_path: Option<String>,
+    diff: Arc<RwLock<Option<String>>>,
 }
 
 impl eframe::App for App {
@@ -55,8 +56,8 @@ impl eframe::App for App {
                                     .split(|byte| *byte == b'\n')
                                     .map(|bytes| String::from_utf8_lossy(bytes).to_string())
                                     .collect();
-
                                 let mut paths = paths.write().unwrap();
+
                                 *paths = new_paths;
                             }
                             Err(error) => eprintln!("{}", error),
@@ -67,13 +68,42 @@ impl eframe::App for App {
                 }
 
                 for path in self.paths.read().unwrap().iter() {
-                    ui.selectable_value(&mut self.selected_path, Some(path.to_owned()), path);
+                    if ui
+                        .selectable_value(&mut self.selected_path, Some(path.to_owned()), path)
+                        .clicked()
+                    {
+                        if let Some(selected_path) = &self.selected_path {
+                            let git = Arc::clone(&self.git);
+                            let selected_path = selected_path.clone();
+                            let diff = Arc::clone(&self.diff);
+                            let ctx = ctx.clone();
+
+                            thread::spawn(move || {
+                                match git.diff(&selected_path) {
+                                    Ok(output) => {
+                                        let new_diff =
+                                            String::from_utf8_lossy(&output.stdout).to_string();
+                                        let mut diff = diff.write().unwrap();
+
+                                        *diff = Some(new_diff);
+                                    }
+                                    Err(error) => eprintln!("{}", error),
+                                }
+
+                                ctx.request_repaint();
+                            });
+                        }
+                    }
                 }
             });
         });
 
         CentralPanel::default().show(ctx, |ui| {
-            ui.heading("diff");
+            ScrollArea::both().show(ui, |ui| {
+                if let Some(diff) = self.diff.read().unwrap().as_ref() {
+                    ui.label(diff);
+                }
+            });
         });
     }
 }
