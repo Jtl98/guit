@@ -1,7 +1,7 @@
 use crate::git::Git;
 use eframe::{
     Frame,
-    egui::{Button, CentralPanel, Context, TopBottomPanel},
+    egui::{Button, CentralPanel, Context, ScrollArea, SidePanel, TopBottomPanel},
 };
 
 #[derive(Default)]
@@ -19,8 +19,15 @@ impl eframe::App for App {
             }
         });
 
+        SidePanel::left("files").show(ctx, |ui| {
+            ScrollArea::both().show(ui, |ui| {
+                ui.take_available_space();
+                ui.heading("files");
+            });
+        });
+
         CentralPanel::default().show(ctx, |ui| {
-            ui.heading("guit");
+            ui.heading("diff");
         });
 
         self.git.update();
