@@ -1,5 +1,5 @@
 pub enum Action {
     Pull,
     Refresh,
-    Diff,
+    Diff(String),
 }

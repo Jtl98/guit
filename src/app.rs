@@ -19,27 +19,21 @@ pub struct App {
 
 impl App {
     fn update(&mut self, action: Option<Action>, ctx: &Context) {
-        match action {
-            Some(Action::Pull) => {
-                let git = Arc::clone(&self.git);
-                let ctx = ctx.clone();
+        if let Some(action) = action {
+            let git = Arc::clone(&self.git);
 
-                thread::spawn(move || {
-                    match git.pull() {
+            match action {
+                Action::Pull => {
+                    let func = move || match git.pull() {
                         Ok(output) => print!("{}", String::from_utf8_lossy(&output.stdout)),
                         Err(error) => eprintln!("{}", error),
-                    }
+                    };
 
-                    ctx.request_repaint();
-                });
-            }
-            Some(Action::Refresh) => {
-                let git = Arc::clone(&self.git);
-                let paths = Arc::clone(&self.paths);
-                let ctx = ctx.clone();
-
-                thread::spawn(move || {
-                    match git.diff_name_only() {
+                    self.execute(func, ctx);
+                }
+                Action::Refresh => {
+                    let paths = Arc::clone(&self.paths);
+                    let func = move || match git.diff_name_only() {
                         Ok(output) => {
                             let new_paths = output
                                 .stdout
@@ -51,37 +45,41 @@ impl App {
                             *paths = new_paths;
                         }
                         Err(error) => eprintln!("{}", error),
-                    }
+                    };
 
-                    ctx.request_repaint();
-                });
-            }
-            Some(Action::Diff) => {
-                if let Some(selected_path) = &self.selected_path {
-                    let git = Arc::clone(&self.git);
-                    let selected_path = selected_path.clone();
+                    self.execute(func, ctx);
+                }
+                Action::Diff(path) => {
                     let diff = Arc::clone(&self.diff);
-                    let ctx = ctx.clone();
+                    let func = move || match git.diff(&path) {
+                        Ok(output) => {
+                            let new_diff = String::from_utf8_lossy(&output.stdout).to_string();
+                            let mut diff = diff.write().unwrap();
 
-                    thread::spawn(move || {
-                        match git.diff(&selected_path) {
-                            Ok(output) => {
-                                let new_diff = String::from_utf8_lossy(&output.stdout).to_string();
-                                let mut diff = diff.write().unwrap();
-
-                                *diff = Some(new_diff);
-                            }
-                            Err(error) => eprintln!("{}", error),
+                            *diff = Some(new_diff);
                         }
+                        Err(error) => eprintln!("{}", error),
+                    };
 
-                        ctx.request_repaint();
-                    });
+                    self.execute(func, ctx);
                 }
             }
-            None => {}
         }
 
         self.is_executing = Arc::strong_count(&self.git) > 1;
+    }
+
+    fn execute<F>(&self, func: F, ctx: &Context)
+    where
+        F: Fn(),
+        F: Send + 'static,
+    {
+        let ctx = ctx.clone();
+
+        thread::spawn(move || {
+            func();
+            ctx.request_repaint();
+        });
     }
 }
 
@@ -111,10 +109,10 @@ impl eframe::App for App {
 
                 for path in self.paths.read().unwrap().iter() {
                     if ui
-                        .selectable_value(&mut self.selected_path, Some(path.to_owned()), path)
+                        .selectable_value(&mut self.selected_path, Some(path.clone()), path)
                         .clicked()
                     {
-                        action = Some(Action::Diff);
+                        action = Some(Action::Diff(path.clone()));
                     }
                 }
             });
