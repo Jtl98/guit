@@ -21,19 +21,15 @@ impl App {
     fn update(&mut self, action: Option<Action>, ctx: &Context) {
         if let Some(action) = action {
             let git = Arc::clone(&self.git);
-
-            match action {
-                Action::Pull => {
-                    let func = move || match git.pull() {
-                        Ok(output) => print!("{}", String::from_utf8_lossy(&output.stdout)),
-                        Err(error) => eprintln!("{}", error),
-                    };
-
-                    self.execute(func, ctx);
-                }
+            let func: Box<dyn FnOnce() + Send + 'static> = match action {
+                Action::Pull => Box::new(move || match git.pull() {
+                    Ok(output) => print!("{}", String::from_utf8_lossy(&output.stdout)),
+                    Err(error) => eprintln!("{}", error),
+                }),
                 Action::Refresh => {
                     let paths = Arc::clone(&self.paths);
-                    let func = move || match git.diff_name_only() {
+
+                    Box::new(move || match git.diff_name_only() {
                         Ok(output) => {
                             let new_paths = output
                                 .stdout
@@ -45,13 +41,12 @@ impl App {
                             *paths = new_paths;
                         }
                         Err(error) => eprintln!("{}", error),
-                    };
-
-                    self.execute(func, ctx);
+                    })
                 }
                 Action::Diff(path) => {
                     let diff = Arc::clone(&self.diff);
-                    let func = move || match git.diff(&path) {
+
+                    Box::new(move || match git.diff(&path) {
                         Ok(output) => {
                             let new_diff = String::from_utf8_lossy(&output.stdout).to_string();
                             let mut diff = diff.write().unwrap();
@@ -59,11 +54,11 @@ impl App {
                             *diff = Some(new_diff);
                         }
                         Err(error) => eprintln!("{}", error),
-                    };
-
-                    self.execute(func, ctx);
+                    })
                 }
-            }
+            };
+
+            self.execute(func, ctx);
         }
 
         self.is_executing = Arc::strong_count(&self.git) > 1;
@@ -71,7 +66,7 @@ impl App {
 
     fn execute<F>(&self, func: F, ctx: &Context)
     where
-        F: Fn(),
+        F: FnOnce(),
         F: Send + 'static,
     {
         let ctx = ctx.clone();
