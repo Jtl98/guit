@@ -10,18 +10,28 @@ use std::{
 
 #[derive(Default)]
 pub struct App {
+    is_executing: bool,
     git: Arc<Git>,
     paths: Arc<RwLock<Vec<String>>>,
     selected_path: Option<String>,
     diff: Arc<RwLock<Option<String>>>,
 }
 
+impl App {
+    fn update(&mut self) {
+        self.is_executing = Arc::strong_count(&self.git) > 1;
+    }
+}
+
 impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
-        let is_executing = Arc::strong_count(&self.git) > 1;
+        self.update();
 
         TopBottomPanel::top("menu").show(ctx, |ui| {
-            if ui.add_enabled(!is_executing, Button::new("pull")).clicked() {
+            if ui
+                .add_enabled(!self.is_executing, Button::new("pull"))
+                .clicked()
+            {
                 let git = Arc::clone(&self.git);
                 let ctx = ctx.clone();
 
@@ -41,7 +51,7 @@ impl eframe::App for App {
                 ui.take_available_space();
 
                 if ui
-                    .add_enabled(!is_executing, Button::new("refresh"))
+                    .add_enabled(!self.is_executing, Button::new("refresh"))
                     .clicked()
                 {
                     let git = Arc::clone(&self.git);
