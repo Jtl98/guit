@@ -115,6 +115,8 @@ impl eframe::App for App {
 
         CentralPanel::default().show(ctx, |ui| {
             ScrollArea::both().show(ui, |ui| {
+                ui.take_available_space();
+
                 if let Some(diff) = self.diff.read().unwrap().as_ref() {
                     ui.label(diff);
                 }
