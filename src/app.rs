@@ -7,6 +7,7 @@ use eframe::{
     },
 };
 use std::{
+    process::Output,
     sync::{Arc, RwLock},
     thread::{self},
 };
@@ -16,6 +17,7 @@ pub struct App {
     is_executing: bool,
     git: Arc<Git>,
     paths: Arc<RwLock<Vec<String>>>,
+    staged_paths: Arc<RwLock<Vec<String>>>,
     selected_path: Option<String>,
     diff: Arc<RwLock<Option<String>>>,
 }
@@ -33,16 +35,15 @@ impl App {
                     let paths = Arc::clone(&self.paths);
 
                     Box::new(move || match git.diff_name_only() {
-                        Ok(output) => {
-                            let new_paths = output
-                                .stdout
-                                .split(|byte| *byte == b'\n')
-                                .map(|bytes| String::from_utf8_lossy(bytes).to_string())
-                                .collect();
-                            let mut paths = paths.write().unwrap();
+                        Ok(output) => Self::refresh_paths(output, paths),
+                        Err(error) => eprintln!("{}", error),
+                    })
+                }
+                Action::RefreshStaged => {
+                    let paths = Arc::clone(&self.staged_paths);
 
-                            *paths = new_paths;
-                        }
+                    Box::new(move || match git.diff_staged_name_only() {
+                        Ok(output) => Self::refresh_paths(output, paths),
                         Err(error) => eprintln!("{}", error),
                     })
                 }
@@ -50,12 +51,15 @@ impl App {
                     let diff = Arc::clone(&self.diff);
 
                     Box::new(move || match git.diff(&path) {
-                        Ok(output) => {
-                            let new_diff = String::from_utf8_lossy(&output.stdout).to_string();
-                            let mut diff = diff.write().unwrap();
+                        Ok(output) => Self::refresh_diff(output, diff),
+                        Err(error) => eprintln!("{}", error),
+                    })
+                }
+                Action::DiffStaged(path) => {
+                    let diff = Arc::clone(&self.diff);
 
-                            *diff = Some(new_diff);
-                        }
+                    Box::new(move || match git.diff_staged(&path) {
+                        Ok(output) => Self::refresh_diff(output, diff),
                         Err(error) => eprintln!("{}", error),
                     })
                 }
@@ -79,6 +83,24 @@ impl App {
             ctx.request_repaint();
         });
     }
+
+    fn refresh_paths(output: Output, paths: Arc<RwLock<Vec<String>>>) {
+        let new_paths = output
+            .stdout
+            .split(|byte| *byte == b'\n')
+            .map(|bytes| String::from_utf8_lossy(bytes).to_string())
+            .collect();
+        let mut paths = paths.write().unwrap();
+
+        *paths = new_paths;
+    }
+
+    fn refresh_diff(output: Output, diff: Arc<RwLock<Option<String>>>) {
+        let new_diff = String::from_utf8_lossy(&output.stdout).to_string();
+        let mut diff = diff.write().unwrap();
+
+        *diff = Some(new_diff);
+    }
 }
 
 impl eframe::App for App {
@@ -95,22 +117,51 @@ impl eframe::App for App {
         });
 
         SidePanel::left("paths").show(ctx, |ui| {
-            ScrollArea::both().show(ui, |ui| {
+            ScrollArea::both()
+                .id_salt("unstaged")
+                .max_height(ui.available_height() / 2.0)
+                .show(ui, |ui| {
+                    ui.take_available_space();
+
+                    if ui
+                        .add_enabled(!self.is_executing, Button::new("refresh"))
+                        .clicked()
+                    {
+                        action = Some(Action::Refresh);
+                    }
+
+                    for path in self.paths.read().unwrap().iter() {
+                        if ui
+                            .selectable_value(&mut self.selected_path, Some(path.clone()), path)
+                            .clicked()
+                        {
+                            action = Some(Action::Diff(path.clone()));
+                        }
+                    }
+                });
+
+            ui.separator();
+
+            ScrollArea::both().id_salt("staged").show(ui, |ui| {
                 ui.take_available_space();
 
                 if ui
                     .add_enabled(!self.is_executing, Button::new("refresh"))
                     .clicked()
                 {
-                    action = Some(Action::Refresh);
+                    action = Some(Action::RefreshStaged);
                 }
 
-                for path in self.paths.read().unwrap().iter() {
+                for path in self.staged_paths.read().unwrap().iter() {
                     if ui
-                        .selectable_value(&mut self.selected_path, Some(path.clone()), path)
+                        .selectable_value(
+                            &mut self.selected_path,
+                            Some(format!("{path}-staged")),
+                            path,
+                        )
                         .clicked()
                     {
-                        action = Some(Action::Diff(path.clone()));
+                        action = Some(Action::DiffStaged(path.clone()));
                     }
                 }
             });

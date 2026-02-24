@@ -12,8 +12,16 @@ impl Git {
         self.execute(["diff", path])
     }
 
+    pub fn diff_staged(&self, path: &str) -> io::Result<Output> {
+        self.execute(["diff", "--staged", path])
+    }
+
     pub fn diff_name_only(&self) -> io::Result<Output> {
         self.execute(["diff", "--name-only"])
+    }
+
+    pub fn diff_staged_name_only(&self) -> io::Result<Output> {
+        self.execute(["diff", "--staged", "--name-only"])
     }
 
     pub fn pull(&self) -> io::Result<Output> {
