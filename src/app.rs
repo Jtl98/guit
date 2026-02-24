@@ -1,7 +1,10 @@
 use crate::{action::Action, git::Git};
 use eframe::{
     Frame,
-    egui::{Button, CentralPanel, Context, ScrollArea, SidePanel, TopBottomPanel},
+    egui::{
+        Button, CentralPanel, Color32, Context, Label, RichText, ScrollArea, SidePanel,
+        TextWrapMode, TopBottomPanel,
+    },
 };
 use std::{
     sync::{Arc, RwLock},
@@ -118,7 +121,20 @@ impl eframe::App for App {
                 ui.take_available_space();
 
                 if let Some(diff) = self.diff.read().unwrap().as_ref() {
-                    ui.label(diff);
+                    for line in diff.lines() {
+                        let colour = if line.starts_with('+') {
+                            Color32::GREEN
+                        } else if line.starts_with('-') {
+                            Color32::RED
+                        } else {
+                            ui.visuals().text_color()
+                        };
+
+                        ui.add(
+                            Label::new(RichText::new(line).monospace().color(colour))
+                                .wrap_mode(TextWrapMode::Extend),
+                        );
+                    }
                 }
             });
         });
