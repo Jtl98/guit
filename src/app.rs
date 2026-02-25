@@ -51,7 +51,7 @@ impl App {
                     let diff = Arc::clone(&self.diff);
 
                     Box::new(move || match git.diff(&path) {
-                        Ok(output) => Self::refresh_diff(output, diff),
+                        Ok(output) => Self::refresh_diff(output, git, diff),
                         Err(error) => eprintln!("{}", error),
                     })
                 }
@@ -59,7 +59,7 @@ impl App {
                     let diff = Arc::clone(&self.diff);
 
                     Box::new(move || match git.diff_staged(&path) {
-                        Ok(output) => Self::refresh_diff(output, diff),
+                        Ok(output) => Self::refresh_diff(output, git, diff),
                         Err(error) => eprintln!("{}", error),
                     })
                 }
@@ -95,8 +95,8 @@ impl App {
         *paths = new_paths;
     }
 
-    fn refresh_diff(output: Output, diff: Arc<RwLock<Option<String>>>) {
-        let new_diff = String::from_utf8_lossy(&output.stdout).to_string();
+    fn refresh_diff(output: Output, git: Arc<Git>, diff: Arc<RwLock<Option<String>>>) {
+        let new_diff = git.remove_diff_header(output);
         let mut diff = diff.write().unwrap();
 
         *diff = Some(new_diff);
