@@ -10,20 +10,26 @@ use std::{
 pub struct Git;
 
 impl Git {
-    pub fn diff(&self, path: &str) -> io::Result<Output> {
-        self.execute(["diff", path])
+    pub fn diff(&self, path: &str) -> io::Result<String> {
+        let output = self.execute(["diff", path])?;
+        let diff = self.remove_diff_headers(&output.stdout);
+
+        Ok(diff)
     }
 
-    pub fn diff_staged(&self, path: &str) -> io::Result<Output> {
-        self.execute(["diff", "--staged", path])
+    pub fn diff_staged(&self, path: &str) -> io::Result<String> {
+        let output = self.execute(["diff", "--staged", path])?;
+        let diff = self.remove_diff_headers(&output.stdout);
+
+        Ok(diff)
     }
 
-    pub fn remove_diff_header(&self, output: Output) -> String {
+    pub fn remove_diff_headers(&self, stdout: &[u8]) -> String {
         static RE: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r"diff --git .*\nindex .*\n--- .*\n\+\+\+ .*\n").unwrap());
-        let stdout = String::from_utf8_lossy(&output.stdout);
+        let diff = String::from_utf8_lossy(stdout);
 
-        RE.replace_all(&stdout, "").to_string()
+        RE.replace_all(&diff, "").to_string()
     }
 
     pub fn diff_name_only(&self) -> io::Result<Output> {
