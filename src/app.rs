@@ -30,7 +30,7 @@ impl App {
                     Ok(output) => print!("{}", String::from_utf8_lossy(&output.stdout)),
                     Err(error) => eprintln!("{}", error),
                 }),
-                Action::Refresh => {
+                Action::RefreshUnstaged => {
                     let paths = Arc::clone(&self.unstaged_paths);
 
                     Box::new(move || match git.diff_name_only() {
@@ -46,7 +46,7 @@ impl App {
                         Err(error) => eprintln!("{}", error),
                     })
                 }
-                Action::Diff(path) => {
+                Action::DiffUnstaged(path) => {
                     let diff = Arc::clone(&self.diff);
 
                     Box::new(move || match git.diff(&path) {
@@ -108,7 +108,7 @@ impl eframe::App for App {
                         .add_enabled(!self.is_executing, Button::new("refresh"))
                         .clicked()
                     {
-                        action = Some(Action::Refresh);
+                        action = Some(Action::RefreshUnstaged);
                     }
 
                     for path in self.unstaged_paths.read().unwrap().iter() {
@@ -116,7 +116,7 @@ impl eframe::App for App {
                             .selectable_value(&mut self.selected_path, Some(path.clone()), path)
                             .clicked()
                         {
-                            action = Some(Action::Diff(path.clone()));
+                            action = Some(Action::DiffUnstaged(path.clone()));
                         }
                     }
                 });

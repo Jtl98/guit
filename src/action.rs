@@ -1,7 +1,7 @@
 pub enum Action {
     Pull,
-    Refresh,
+    RefreshUnstaged,
     RefreshStaged,
-    Diff(String),
+    DiffUnstaged(String),
     DiffStaged(String),
 }
