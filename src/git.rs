@@ -24,14 +24,6 @@ impl Git {
         Ok(diff)
     }
 
-    pub fn remove_diff_headers(&self, stdout: &[u8]) -> String {
-        static RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"diff --git .*\nindex .*\n--- .*\n\+\+\+ .*\n").unwrap());
-        let diff = String::from_utf8_lossy(stdout);
-
-        RE.replace_all(&diff, "").to_string()
-    }
-
     pub fn diff_name_only(&self) -> io::Result<Output> {
         self.execute(["diff", "--name-only"])
     }
@@ -42,6 +34,14 @@ impl Git {
 
     pub fn pull(&self) -> io::Result<Output> {
         self.execute(["pull"])
+    }
+
+    fn remove_diff_headers(&self, stdout: &[u8]) -> String {
+        static RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"diff --git .*\nindex .*\n--- .*\n\+\+\+ .*\n").unwrap());
+        let diff = String::from_utf8_lossy(stdout);
+
+        RE.replace_all(&diff, "").to_string()
     }
 
     fn execute<I, S>(&self, args: I) -> io::Result<Output>
