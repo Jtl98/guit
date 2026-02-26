@@ -2,8 +2,8 @@ use crate::{action::Action, git::Git};
 use eframe::{
     Frame,
     egui::{
-        Button, CentralPanel, Color32, Context, Label, RichText, ScrollArea, SidePanel,
-        TextWrapMode, TopBottomPanel,
+        Align, Button, CentralPanel, Color32, Context, Label, Layout, RichText, ScrollArea,
+        SidePanel, TextWrapMode, TopBottomPanel,
     },
 };
 use std::{
@@ -14,6 +14,7 @@ use std::{
 #[derive(Default)]
 pub struct App {
     is_executing: bool,
+    show_logs: bool,
     git: Arc<Git>,
     unstaged_paths: Arc<RwLock<Vec<String>>>,
     staged_paths: Arc<RwLock<Vec<String>>>,
@@ -89,13 +90,31 @@ impl eframe::App for App {
         let mut action = None;
 
         TopBottomPanel::top("menu").show(ctx, |ui| {
-            if ui
-                .add_enabled(!self.is_executing, Button::new("pull"))
-                .clicked()
-            {
-                action = Some(Action::Pull);
-            }
+            ui.horizontal(|ui| {
+                if ui
+                    .add_enabled(!self.is_executing, Button::new("pull"))
+                    .clicked()
+                {
+                    action = Some(Action::Pull);
+                }
+
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if ui.selectable_label(self.show_logs, "logs").clicked() {
+                        self.show_logs = !self.show_logs;
+                    }
+                });
+            });
         });
+
+        if self.show_logs {
+            TopBottomPanel::bottom("logs")
+                .resizable(true)
+                .show(ctx, |ui| {
+                    ScrollArea::both().show(ui, |ui| {
+                        ui.take_available_space();
+                    });
+                });
+        }
 
         SidePanel::left("paths").show(ctx, |ui| {
             ScrollArea::both()
