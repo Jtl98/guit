@@ -20,16 +20,19 @@ pub struct App {
     staged_paths: Arc<RwLock<Vec<String>>>,
     selected_path: Option<String>,
     diff: Arc<RwLock<Option<String>>>,
+    logs: Arc<RwLock<Vec<String>>>,
 }
 
 impl App {
     fn update(&mut self, action: Option<Action>, ctx: &Context) {
         if let Some(action) = action {
             let git = Arc::clone(&self.git);
+            let logs = Arc::clone(&self.logs);
+
             let func: Box<dyn FnOnce() + Send + 'static> = match action {
-                Action::Pull => Box::new(move || match git.pull() {
-                    Ok(output) => print!("{}", String::from_utf8_lossy(&output.stdout)),
-                    Err(error) => eprintln!("{}", error),
+                Action::Pull => Box::new(move || {
+                    let pull_logs = git.pull();
+                    logs.write().unwrap().extend(pull_logs);
                 }),
                 Action::RefreshUnstaged => {
                     let paths = Arc::clone(&self.unstaged_paths);
@@ -112,6 +115,10 @@ impl eframe::App for App {
                 .show(ctx, |ui| {
                     ScrollArea::both().show(ui, |ui| {
                         ui.take_available_space();
+
+                        for log in self.logs.read().unwrap().iter() {
+                            ui.label(log);
+                        }
                     });
                 });
         }

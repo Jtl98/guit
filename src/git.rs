@@ -26,20 +26,20 @@ impl Git {
 
     pub fn diff_name_only(&self) -> io::Result<Vec<String>> {
         let output = self.execute(["diff", "--name-only"])?;
-        let names: Vec<String> = self.split_by_newlines(&output.stdout);
+        let names: Vec<String> = self.split_by_newline(&output.stdout);
 
         Ok(names)
     }
 
     pub fn diff_staged_name_only(&self) -> io::Result<Vec<String>> {
         let output = self.execute(["diff", "--staged", "--name-only"])?;
-        let names: Vec<String> = self.split_by_newlines(&output.stdout);
+        let names: Vec<String> = self.split_by_newline(&output.stdout);
 
         Ok(names)
     }
 
-    pub fn pull(&self) -> io::Result<Output> {
-        self.execute(["pull"])
+    pub fn pull(&self) -> Vec<String> {
+        self.execute_returning_logs(["pull"])
     }
 
     fn remove_diff_headers(&self, stdout: &[u8]) -> String {
@@ -50,9 +50,9 @@ impl Git {
         RE.replace_all(&diff, "").to_string()
     }
 
-    fn split_by_newlines(&self, stdout: &[u8]) -> Vec<String> {
-        stdout
-            .split(|byte| *byte == b'\n')
+    fn split_by_newline(&self, text: &[u8]) -> Vec<String> {
+        text.split(|byte| *byte == b'\n')
+            .filter(|bytes| !bytes.is_empty())
             .map(|bytes| String::from_utf8_lossy(bytes).to_string())
             .collect()
     }
@@ -63,5 +63,22 @@ impl Git {
         S: AsRef<OsStr>,
     {
         Command::new("git").args(args).output()
+    }
+
+    fn execute_returning_logs<I, S>(&self, args: I) -> Vec<String>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        match self.execute(args) {
+            Ok(output) => {
+                let Output { stdout, stderr, .. } = output;
+                let mut logs = self.split_by_newline(&stdout);
+                logs.extend(self.split_by_newline(&stderr));
+
+                logs
+            }
+            Err(error) => vec![error.to_string()],
+        }
     }
 }
