@@ -16,7 +16,7 @@ use std::{
 pub struct App {
     is_executing: bool,
     git: Arc<Git>,
-    paths: Arc<RwLock<Vec<String>>>,
+    unstaged_paths: Arc<RwLock<Vec<String>>>,
     staged_paths: Arc<RwLock<Vec<String>>>,
     selected_path: Option<String>,
     diff: Arc<RwLock<Option<String>>>,
@@ -32,7 +32,7 @@ impl App {
                     Err(error) => eprintln!("{}", error),
                 }),
                 Action::Refresh => {
-                    let paths = Arc::clone(&self.paths);
+                    let paths = Arc::clone(&self.unstaged_paths);
 
                     Box::new(move || match git.diff_name_only() {
                         Ok(output) => Self::refresh_paths(output, paths),
@@ -123,7 +123,7 @@ impl eframe::App for App {
                         action = Some(Action::Refresh);
                     }
 
-                    for path in self.paths.read().unwrap().iter() {
+                    for path in self.unstaged_paths.read().unwrap().iter() {
                         if ui
                             .selectable_value(&mut self.selected_path, Some(path.clone()), path)
                             .clicked()
