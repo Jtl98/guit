@@ -7,7 +7,6 @@ use eframe::{
     },
 };
 use std::{
-    process::Output,
     sync::{Arc, RwLock},
     thread::{self},
 };
@@ -35,7 +34,7 @@ impl App {
                     let paths = Arc::clone(&self.unstaged_paths);
 
                     Box::new(move || match git.diff_name_only() {
-                        Ok(output) => Self::refresh_paths(output, paths),
+                        Ok(names) => *paths.write().unwrap() = names,
                         Err(error) => eprintln!("{}", error),
                     })
                 }
@@ -43,7 +42,7 @@ impl App {
                     let paths = Arc::clone(&self.staged_paths);
 
                     Box::new(move || match git.diff_staged_name_only() {
-                        Ok(output) => Self::refresh_paths(output, paths),
+                        Ok(names) => *paths.write().unwrap() = names,
                         Err(error) => eprintln!("{}", error),
                     })
                 }
@@ -82,17 +81,6 @@ impl App {
             func();
             ctx.request_repaint();
         });
-    }
-
-    fn refresh_paths(output: Output, paths: Arc<RwLock<Vec<String>>>) {
-        let new_paths = output
-            .stdout
-            .split(|byte| *byte == b'\n')
-            .map(|bytes| String::from_utf8_lossy(bytes).to_string())
-            .collect();
-        let mut paths = paths.write().unwrap();
-
-        *paths = new_paths;
     }
 }
 

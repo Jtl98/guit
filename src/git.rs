@@ -24,12 +24,18 @@ impl Git {
         Ok(diff)
     }
 
-    pub fn diff_name_only(&self) -> io::Result<Output> {
-        self.execute(["diff", "--name-only"])
+    pub fn diff_name_only(&self) -> io::Result<Vec<String>> {
+        let output = self.execute(["diff", "--name-only"])?;
+        let names: Vec<String> = self.split_by_newlines(&output.stdout);
+
+        Ok(names)
     }
 
-    pub fn diff_staged_name_only(&self) -> io::Result<Output> {
-        self.execute(["diff", "--staged", "--name-only"])
+    pub fn diff_staged_name_only(&self) -> io::Result<Vec<String>> {
+        let output = self.execute(["diff", "--staged", "--name-only"])?;
+        let names: Vec<String> = self.split_by_newlines(&output.stdout);
+
+        Ok(names)
     }
 
     pub fn pull(&self) -> io::Result<Output> {
@@ -42,6 +48,13 @@ impl Git {
         let diff = String::from_utf8_lossy(stdout);
 
         RE.replace_all(&diff, "").to_string()
+    }
+
+    fn split_by_newlines(&self, stdout: &[u8]) -> Vec<String> {
+        stdout
+            .split(|byte| *byte == b'\n')
+            .map(|bytes| String::from_utf8_lossy(bytes).to_string())
+            .collect()
     }
 
     fn execute<I, S>(&self, args: I) -> io::Result<Output>
