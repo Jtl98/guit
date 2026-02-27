@@ -51,6 +51,15 @@ impl Git {
         self.execute_returning_logs(["pull"])
     }
 
+    pub fn add_or_restore(&self, key: &DiffKey) -> Vec<String> {
+        match key.area {
+            DiffArea::Untracked | DiffArea::Unstaged => {
+                self.execute_returning_logs(["add", &key.path])
+            }
+            DiffArea::Staged => self.execute_returning_logs(["restore", "--staged", &key.path]),
+        }
+    }
+
     fn split_by_newline(&self, text: &[u8]) -> Vec<String> {
         text.split(|byte| *byte == b'\n')
             .filter(|bytes| !bytes.is_empty())

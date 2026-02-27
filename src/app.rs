@@ -34,10 +34,16 @@ impl App {
                 }),
                 Action::Refresh => {
                     let repo = Arc::clone(&self.repo);
+                    Box::new(move || Self::refresh(&git, &repo))
+                }
+                Action::AddOrRestore(key) => {
+                    let repo = Arc::clone(&self.repo);
 
-                    Box::new(move || match Repo::new(&git) {
-                        Ok(new_repo) => *repo.write().unwrap() = new_repo,
-                        Err(error) => eprintln!("{}", error),
+                    Box::new(move || {
+                        let add_or_restore_logs = git.add_or_restore(&key);
+                        logs.write().unwrap().extend(add_or_restore_logs);
+
+                        Self::refresh(&git, &repo);
                     })
                 }
             };
@@ -59,6 +65,13 @@ impl App {
             func();
             ctx.request_repaint();
         });
+    }
+
+    fn refresh(git: &Git, repo: &RwLock<Repo>) {
+        match Repo::new(git) {
+            Ok(new_repo) => *repo.write().unwrap() = new_repo,
+            Err(error) => eprintln!("{}", error),
+        }
     }
 }
 
@@ -114,7 +127,12 @@ impl eframe::App for App {
                     let repo = self.repo.read().unwrap();
                     let keys = repo.diffs.keys().filter(DiffKey::is_not_staged);
                     for key in keys {
-                        ui.selectable_value(&mut self.selected_key, Some(key.clone()), &key.path);
+                        if ui
+                            .selectable_value(&mut self.selected_key, Some(key.clone()), &key.path)
+                            .double_clicked()
+                        {
+                            action = Some(Action::AddOrRestore(key.clone()))
+                        };
                     }
                 });
 
@@ -126,7 +144,12 @@ impl eframe::App for App {
                 let repo = self.repo.read().unwrap();
                 let keys = repo.diffs.keys().filter(DiffKey::is_staged);
                 for key in keys {
-                    ui.selectable_value(&mut self.selected_key, Some(key.clone()), &key.path);
+                    if ui
+                        .selectable_value(&mut self.selected_key, Some(key.clone()), &key.path)
+                        .double_clicked()
+                    {
+                        action = Some(Action::AddOrRestore(key.clone()))
+                    };
                 }
             });
         });
