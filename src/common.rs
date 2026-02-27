@@ -1,3 +1,9 @@
+pub enum Action {
+    Pull,
+    Refresh,
+    AddOrRestore(DiffKey),
+}
+
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct DiffKey {
     pub path: String,

@@ -1,4 +1,4 @@
-use crate::{action::Action, common::DiffKey, git::Git, repo::Repo};
+use crate::{common::Action, common::DiffKey, git::Git, repo::Repo};
 use eframe::{
     Frame,
     egui::{
