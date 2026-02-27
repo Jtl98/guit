@@ -16,8 +16,8 @@ pub struct App {
     is_executing: bool,
     show_logs: bool,
     git: Arc<Git>,
-    selected_key: Option<DiffKey>,
     repo: Arc<RwLock<Repo>>,
+    selected_key: Option<DiffKey>,
     logs: Arc<RwLock<Vec<String>>>,
 }
 
@@ -25,27 +25,21 @@ impl App {
     fn update(&mut self, action: Option<Action>, ctx: &Context) {
         if let Some(action) = action {
             let git = Arc::clone(&self.git);
+            let repo = Arc::clone(&self.repo);
             let logs = Arc::clone(&self.logs);
 
             let func: Box<dyn FnOnce() + Send + 'static> = match action {
                 Action::Pull => Box::new(move || {
-                    let pull_logs = git.pull();
-                    logs.write().unwrap().extend(pull_logs);
+                    let new_logs = git.pull();
+                    logs.write().unwrap().extend(new_logs);
                 }),
-                Action::Refresh => {
-                    let repo = Arc::clone(&self.repo);
-                    Box::new(move || Self::refresh(&git, &repo))
-                }
-                Action::AddOrRestore(key) => {
-                    let repo = Arc::clone(&self.repo);
+                Action::Refresh => Box::new(move || Self::refresh(&git, &repo, &logs)),
+                Action::AddOrRestore(key) => Box::new(move || {
+                    let new_logs = git.add_or_restore(&key);
+                    logs.write().unwrap().extend(new_logs);
 
-                    Box::new(move || {
-                        let add_or_restore_logs = git.add_or_restore(&key);
-                        logs.write().unwrap().extend(add_or_restore_logs);
-
-                        Self::refresh(&git, &repo);
-                    })
-                }
+                    Self::refresh(&git, &repo, &logs);
+                }),
             };
 
             Self::execute(func, ctx);
@@ -67,10 +61,10 @@ impl App {
         });
     }
 
-    fn refresh(git: &Git, repo: &RwLock<Repo>) {
+    fn refresh(git: &Git, repo: &RwLock<Repo>, logs: &RwLock<Vec<String>>) {
         match Repo::new(git) {
             Ok(new_repo) => *repo.write().unwrap() = new_repo,
-            Err(error) => eprintln!("{}", error),
+            Err(error) => logs.write().unwrap().push(error.to_string()),
         }
     }
 }
