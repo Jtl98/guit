@@ -1,4 +1,4 @@
-use crate::diff::DiffKey;
+use crate::common::DiffKey;
 
 pub enum Action {
     Pull,

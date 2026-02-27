@@ -1,6 +1,6 @@
 mod action;
 mod app;
-mod diff;
+mod common;
 mod git;
 mod repo;
 

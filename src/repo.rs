@@ -1,4 +1,4 @@
-use crate::{diff::DiffKey, git::Git};
+use crate::{common::DiffKey, git::Git};
 use std::{collections::HashMap, io};
 
 type Diffs = HashMap<DiffKey, String>;

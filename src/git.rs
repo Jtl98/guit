@@ -1,4 +1,4 @@
-use crate::diff::{DiffArea, DiffKey};
+use crate::common::{DiffArea, DiffKey};
 use regex::Regex;
 use std::{
     ffi::OsStr,
