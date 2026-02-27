@@ -48,13 +48,13 @@ impl App {
                 }
             };
 
-            self.execute(func, ctx);
+            Self::execute(func, ctx);
         }
 
         self.is_executing = Arc::strong_count(&self.git) > 1;
     }
 
-    fn execute<F>(&self, func: F, ctx: &Context)
+    fn execute<F>(func: F, ctx: &Context)
     where
         F: FnOnce(),
         F: Send + 'static,
