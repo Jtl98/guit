@@ -2,6 +2,7 @@ use crate::diff::{DiffArea, DiffKey};
 use regex::Regex;
 use std::{
     ffi::OsStr,
+    fs,
     io::{self},
     process::{Command, Output},
     sync::LazyLock,
@@ -15,14 +16,14 @@ impl Git {
         static RE: LazyLock<Regex> =
             LazyLock::new(|| Regex::new(r"diff --git .*\nindex .*\n--- .*\n\+\+\+ .*\n").unwrap());
 
-        let output = match key.area {
-            DiffArea::Unstaged => self.execute(["diff", &key.path]),
-            DiffArea::Staged => self.execute(["diff", "--staged", &key.path]),
-        }?;
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let diff = RE.replace_all(&stdout, "").to_string();
+        let bytes = match key.area {
+            DiffArea::Untracked => fs::read(&key.path)?,
+            DiffArea::Unstaged => self.execute(["diff", &key.path])?.stdout,
+            DiffArea::Staged => self.execute(["diff", "--staged", &key.path])?.stdout,
+        };
+        let diff = String::from_utf8_lossy(&bytes);
 
-        Ok(diff)
+        Ok(RE.replace_all(&diff, "").to_string())
     }
 
     pub fn diff_name_only(&self) -> io::Result<Vec<DiffKey>> {
@@ -33,9 +34,14 @@ impl Git {
                 .collect()
         };
 
+        let untracked_stdout = self
+            .execute(["ls-files", "--others", "--exclude-standard"])?
+            .stdout;
         let unstaged_stdout = self.execute(["diff", "--name-only"])?.stdout;
         let staged_stdout = self.execute(["diff", "--staged", "--name-only"])?.stdout;
-        let mut keys = create_keys(&unstaged_stdout, DiffArea::Unstaged);
+
+        let mut keys = create_keys(&untracked_stdout, DiffArea::Untracked);
+        keys.extend(create_keys(&unstaged_stdout, DiffArea::Unstaged));
         keys.extend(create_keys(&staged_stdout, DiffArea::Staged));
 
         Ok(keys)

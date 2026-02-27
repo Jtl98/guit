@@ -112,7 +112,7 @@ impl eframe::App for App {
                     ui.take_available_space();
 
                     let repo = self.repo.read().unwrap();
-                    let keys = repo.diffs.keys().filter(DiffKey::is_unstaged);
+                    let keys = repo.diffs.keys().filter(DiffKey::is_not_staged);
                     for key in keys {
                         ui.selectable_value(&mut self.selected_key, Some(key.clone()), &key.path);
                     }

@@ -5,17 +5,18 @@ pub struct DiffKey {
 }
 
 impl DiffKey {
-    pub fn is_unstaged(key: &&DiffKey) -> bool {
-        matches!(key.area, DiffArea::Unstaged)
-    }
-
     pub fn is_staged(key: &&DiffKey) -> bool {
         matches!(key.area, DiffArea::Staged)
+    }
+
+    pub fn is_not_staged(key: &&DiffKey) -> bool {
+        !Self::is_staged(key)
     }
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum DiffArea {
+    Untracked,
     Unstaged,
     Staged,
 }
