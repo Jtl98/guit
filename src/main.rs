@@ -1,6 +1,8 @@
 mod action;
 mod app;
+mod diff;
 mod git;
+mod repo;
 
 use crate::app::App;
 use eframe::NativeOptions;

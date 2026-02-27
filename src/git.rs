@@ -1,3 +1,4 @@
+use crate::diff::{DiffArea, DiffKey};
 use regex::Regex;
 use std::{
     ffi::OsStr,
@@ -10,44 +11,38 @@ use std::{
 pub struct Git;
 
 impl Git {
-    pub fn diff(&self, path: &str) -> io::Result<String> {
-        let output = self.execute(["diff", path])?;
-        let diff = self.remove_diff_headers(&output.stdout);
+    pub fn diff(&self, key: &DiffKey) -> io::Result<String> {
+        static RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new(r"diff --git .*\nindex .*\n--- .*\n\+\+\+ .*\n").unwrap());
+
+        let output = match key.area {
+            DiffArea::Unstaged => self.execute(["diff", &key.path]),
+            DiffArea::Staged => self.execute(["diff", "--staged", &key.path]),
+        }?;
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        let diff = RE.replace_all(&stdout, "").to_string();
 
         Ok(diff)
     }
 
-    pub fn diff_staged(&self, path: &str) -> io::Result<String> {
-        let output = self.execute(["diff", "--staged", path])?;
-        let diff = self.remove_diff_headers(&output.stdout);
+    pub fn diff_name_only(&self) -> io::Result<Vec<DiffKey>> {
+        let create_keys = |stdout, area| -> Vec<DiffKey> {
+            self.split_by_newline(stdout)
+                .into_iter()
+                .map(|path| DiffKey { path, area })
+                .collect()
+        };
 
-        Ok(diff)
-    }
+        let unstaged_stdout = self.execute(["diff", "--name-only"])?.stdout;
+        let staged_stdout = self.execute(["diff", "--staged", "--name-only"])?.stdout;
+        let mut keys = create_keys(&unstaged_stdout, DiffArea::Unstaged);
+        keys.extend(create_keys(&staged_stdout, DiffArea::Staged));
 
-    pub fn diff_name_only(&self) -> io::Result<Vec<String>> {
-        let output = self.execute(["diff", "--name-only"])?;
-        let names: Vec<String> = self.split_by_newline(&output.stdout);
-
-        Ok(names)
-    }
-
-    pub fn diff_staged_name_only(&self) -> io::Result<Vec<String>> {
-        let output = self.execute(["diff", "--staged", "--name-only"])?;
-        let names: Vec<String> = self.split_by_newline(&output.stdout);
-
-        Ok(names)
+        Ok(keys)
     }
 
     pub fn pull(&self) -> Vec<String> {
         self.execute_returning_logs(["pull"])
-    }
-
-    fn remove_diff_headers(&self, stdout: &[u8]) -> String {
-        static RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"diff --git .*\nindex .*\n--- .*\n\+\+\+ .*\n").unwrap());
-        let diff = String::from_utf8_lossy(stdout);
-
-        RE.replace_all(&diff, "").to_string()
     }
 
     fn split_by_newline(&self, text: &[u8]) -> Vec<String> {

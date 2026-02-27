@@ -1,4 +1,4 @@
-use crate::{action::Action, git::Git};
+use crate::{action::Action, diff::DiffKey, git::Git, repo::Repo};
 use eframe::{
     Frame,
     egui::{
@@ -16,10 +16,8 @@ pub struct App {
     is_executing: bool,
     show_logs: bool,
     git: Arc<Git>,
-    unstaged_paths: Arc<RwLock<Vec<String>>>,
-    staged_paths: Arc<RwLock<Vec<String>>>,
-    selected_path: Option<String>,
-    diff: Arc<RwLock<Option<String>>>,
+    selected_key: Option<DiffKey>,
+    repo: Arc<RwLock<Repo>>,
     logs: Arc<RwLock<Vec<String>>>,
 }
 
@@ -34,35 +32,11 @@ impl App {
                     let pull_logs = git.pull();
                     logs.write().unwrap().extend(pull_logs);
                 }),
-                Action::RefreshUnstaged => {
-                    let paths = Arc::clone(&self.unstaged_paths);
+                Action::Refresh => {
+                    let repo = Arc::clone(&self.repo);
 
-                    Box::new(move || match git.diff_name_only() {
-                        Ok(names) => *paths.write().unwrap() = names,
-                        Err(error) => eprintln!("{}", error),
-                    })
-                }
-                Action::RefreshStaged => {
-                    let paths = Arc::clone(&self.staged_paths);
-
-                    Box::new(move || match git.diff_staged_name_only() {
-                        Ok(names) => *paths.write().unwrap() = names,
-                        Err(error) => eprintln!("{}", error),
-                    })
-                }
-                Action::DiffUnstaged(path) => {
-                    let diff = Arc::clone(&self.diff);
-
-                    Box::new(move || match git.diff(&path) {
-                        Ok(new_diff) => *diff.write().unwrap() = Some(new_diff),
-                        Err(error) => eprintln!("{}", error),
-                    })
-                }
-                Action::DiffStaged(path) => {
-                    let diff = Arc::clone(&self.diff);
-
-                    Box::new(move || match git.diff_staged(&path) {
-                        Ok(new_diff) => *diff.write().unwrap() = Some(new_diff),
+                    Box::new(move || match Repo::new(&git) {
+                        Ok(new_repo) => *repo.write().unwrap() = new_repo,
                         Err(error) => eprintln!("{}", error),
                     })
                 }
@@ -94,6 +68,13 @@ impl eframe::App for App {
 
         TopBottomPanel::top("menu").show(ctx, |ui| {
             ui.horizontal(|ui| {
+                if ui
+                    .add_enabled(!self.is_executing, Button::new("refresh"))
+                    .clicked()
+                {
+                    action = Some(Action::Refresh);
+                }
+
                 if ui
                     .add_enabled(!self.is_executing, Button::new("pull"))
                     .clicked()
@@ -130,20 +111,10 @@ impl eframe::App for App {
                 .show(ui, |ui| {
                     ui.take_available_space();
 
-                    if ui
-                        .add_enabled(!self.is_executing, Button::new("refresh"))
-                        .clicked()
-                    {
-                        action = Some(Action::RefreshUnstaged);
-                    }
-
-                    for path in self.unstaged_paths.read().unwrap().iter() {
-                        if ui
-                            .selectable_value(&mut self.selected_path, Some(path.clone()), path)
-                            .clicked()
-                        {
-                            action = Some(Action::DiffUnstaged(path.clone()));
-                        }
+                    let repo = self.repo.read().unwrap();
+                    let keys = repo.diffs.keys().filter(DiffKey::is_unstaged);
+                    for key in keys {
+                        ui.selectable_value(&mut self.selected_key, Some(key.clone()), &key.path);
                     }
                 });
 
@@ -152,24 +123,10 @@ impl eframe::App for App {
             ScrollArea::both().id_salt("staged").show(ui, |ui| {
                 ui.take_available_space();
 
-                if ui
-                    .add_enabled(!self.is_executing, Button::new("refresh"))
-                    .clicked()
-                {
-                    action = Some(Action::RefreshStaged);
-                }
-
-                for path in self.staged_paths.read().unwrap().iter() {
-                    if ui
-                        .selectable_value(
-                            &mut self.selected_path,
-                            Some(format!("{path}-staged")),
-                            path,
-                        )
-                        .clicked()
-                    {
-                        action = Some(Action::DiffStaged(path.clone()));
-                    }
+                let repo = self.repo.read().unwrap();
+                let keys = repo.diffs.keys().filter(DiffKey::is_staged);
+                for key in keys {
+                    ui.selectable_value(&mut self.selected_key, Some(key.clone()), &key.path);
                 }
             });
         });
@@ -178,7 +135,10 @@ impl eframe::App for App {
             ScrollArea::both().show(ui, |ui| {
                 ui.take_available_space();
 
-                if let Some(diff) = self.diff.read().unwrap().as_ref() {
+                let repo = self.repo.read().unwrap();
+                if let Some(selected_key) = &self.selected_key
+                    && let Some(diff) = repo.diffs.get(selected_key)
+                {
                     for line in diff.lines() {
                         let colour = if line.starts_with('+') {
                             Color32::GREEN
