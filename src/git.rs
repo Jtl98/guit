@@ -88,7 +88,10 @@ impl Git {
         S: AsRef<OsStr>,
     {
         match self.execute(args) {
-            Ok(output) => info!("{}", String::from_utf8_lossy(&output.stdout)),
+            Ok(output) => {
+                info!("{}", String::from_utf8_lossy(&output.stdout));
+                error!("{}", String::from_utf8_lossy(&output.stderr));
+            }
             Err(error) => error!("{}", error),
         }
     }
