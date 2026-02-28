@@ -1,5 +1,6 @@
 pub enum Action {
     Pull,
+    Push,
     Refresh,
     AddOrRestore(DiffKey),
     Commit(String),

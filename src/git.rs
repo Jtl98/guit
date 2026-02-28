@@ -52,6 +52,10 @@ impl Git {
         self.execute_and_log(["pull"])
     }
 
+    pub fn push(&self) {
+        self.execute_and_log(["push"])
+    }
+
     pub fn add_or_restore(&self, key: &DiffKey) {
         match key.area {
             DiffArea::Untracked | DiffArea::Unstaged => self.execute_and_log(["add", &key.path]),

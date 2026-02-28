@@ -35,6 +35,7 @@ impl App {
 
             let func: Box<dyn FnOnce() + Send + 'static> = match action {
                 Action::Pull => Box::new(move || git.pull()),
+                Action::Push => Box::new(move || git.push()),
                 Action::Refresh => Box::new(move || Self::refresh(&git, &repo)),
                 Action::AddOrRestore(key) => Box::new(move || {
                     git.add_or_restore(&key);
@@ -91,6 +92,13 @@ impl eframe::App for App {
                     .clicked()
                 {
                     action = Some(Action::Pull);
+                }
+
+                if ui
+                    .add_enabled(!self.is_executing, Button::new("push"))
+                    .clicked()
+                {
+                    action = Some(Action::Push);
                 }
 
                 ui.text_edit_singleline(&mut self.commit_message);
