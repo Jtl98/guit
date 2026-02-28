@@ -5,4 +5,5 @@ edition = "2024"
 
 [dependencies]
 eframe = "0.33.3"
+log = "0.4.29"
 regex = "1.12.3"

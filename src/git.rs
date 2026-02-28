@@ -1,4 +1,5 @@
 use crate::common::{DiffArea, DiffKey};
+use log::{error, info};
 use regex::Regex;
 use std::{
     ffi::OsStr,
@@ -47,16 +48,14 @@ impl Git {
         Ok(keys)
     }
 
-    pub fn pull(&self) -> Vec<String> {
-        self.execute_returning_logs(["pull"])
+    pub fn pull(&self) {
+        self.execute_and_log(["pull"])
     }
 
-    pub fn add_or_restore(&self, key: &DiffKey) -> Vec<String> {
+    pub fn add_or_restore(&self, key: &DiffKey) {
         match key.area {
-            DiffArea::Untracked | DiffArea::Unstaged => {
-                self.execute_returning_logs(["add", &key.path])
-            }
-            DiffArea::Staged => self.execute_returning_logs(["restore", "--staged", &key.path]),
+            DiffArea::Untracked | DiffArea::Unstaged => self.execute_and_log(["add", &key.path]),
+            DiffArea::Staged => self.execute_and_log(["restore", "--staged", &key.path]),
         }
     }
 
@@ -75,20 +74,14 @@ impl Git {
         Command::new("git").args(args).output()
     }
 
-    fn execute_returning_logs<I, S>(&self, args: I) -> Vec<String>
+    fn execute_and_log<I, S>(&self, args: I)
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
         match self.execute(args) {
-            Ok(output) => {
-                let Output { stdout, stderr, .. } = output;
-                let mut logs = self.split_by_newline(&stdout);
-                logs.extend(self.split_by_newline(&stderr));
-
-                logs
-            }
-            Err(error) => vec![error.to_string()],
+            Ok(output) => info!("{}", String::from_utf8_lossy(&output.stdout)),
+            Err(error) => error!("{}", error),
         }
     }
 }

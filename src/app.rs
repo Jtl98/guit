@@ -6,6 +6,7 @@ use eframe::{
         SidePanel, TextWrapMode, TopBottomPanel,
     },
 };
+use log::error;
 use std::{
     sync::{Arc, RwLock},
     thread::{self},
@@ -18,7 +19,6 @@ pub struct App {
     git: Arc<Git>,
     repo: Arc<RwLock<Repo>>,
     selected_key: Option<DiffKey>,
-    logs: Arc<RwLock<Vec<String>>>,
 }
 
 impl App {
@@ -26,19 +26,13 @@ impl App {
         if let Some(action) = action {
             let git = Arc::clone(&self.git);
             let repo = Arc::clone(&self.repo);
-            let logs = Arc::clone(&self.logs);
 
             let func: Box<dyn FnOnce() + Send + 'static> = match action {
-                Action::Pull => Box::new(move || {
-                    let new_logs = git.pull();
-                    logs.write().unwrap().extend(new_logs);
-                }),
-                Action::Refresh => Box::new(move || Self::refresh(&git, &repo, &logs)),
+                Action::Pull => Box::new(move || git.pull()),
+                Action::Refresh => Box::new(move || Self::refresh(&git, &repo)),
                 Action::AddOrRestore(key) => Box::new(move || {
-                    let new_logs = git.add_or_restore(&key);
-                    logs.write().unwrap().extend(new_logs);
-
-                    Self::refresh(&git, &repo, &logs);
+                    git.add_or_restore(&key);
+                    Self::refresh(&git, &repo);
                 }),
             };
 
@@ -61,10 +55,10 @@ impl App {
         });
     }
 
-    fn refresh(git: &Git, repo: &RwLock<Repo>, logs: &RwLock<Vec<String>>) {
+    fn refresh(git: &Git, repo: &RwLock<Repo>) {
         match Repo::new(git) {
             Ok(new_repo) => *repo.write().unwrap() = new_repo,
-            Err(error) => logs.write().unwrap().push(error.to_string()),
+            Err(error) => error!("{}", error),
         }
     }
 }
@@ -103,10 +97,6 @@ impl eframe::App for App {
                 .show(ctx, |ui| {
                     ScrollArea::both().show(ui, |ui| {
                         ui.take_available_space();
-
-                        for log in self.logs.read().unwrap().iter() {
-                            ui.label(log);
-                        }
                     });
                 });
         }
