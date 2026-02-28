@@ -2,6 +2,7 @@ pub enum Action {
     Pull,
     Refresh,
     AddOrRestore(DiffKey),
+    Commit(String),
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]

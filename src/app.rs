@@ -24,6 +24,7 @@ pub struct App {
     git: Arc<Git>,
     repo: Arc<RwLock<Repo>>,
     selected_key: Option<DiffKey>,
+    commit_message: String,
 }
 
 impl App {
@@ -37,6 +38,10 @@ impl App {
                 Action::Refresh => Box::new(move || Self::refresh(&git, &repo)),
                 Action::AddOrRestore(key) => Box::new(move || {
                     git.add_or_restore(&key);
+                    Self::refresh(&git, &repo);
+                }),
+                Action::Commit(message) => Box::new(move || {
+                    git.commit(&message);
                     Self::refresh(&git, &repo);
                 }),
             };
@@ -86,6 +91,19 @@ impl eframe::App for App {
                     .clicked()
                 {
                     action = Some(Action::Pull);
+                }
+
+                ui.text_edit_singleline(&mut self.commit_message);
+
+                if ui
+                    .add_enabled(
+                        !self.is_executing && !self.commit_message.is_empty(),
+                        Button::new("commit"),
+                    )
+                    .clicked()
+                {
+                    action = Some(Action::Commit(self.commit_message.clone()));
+                    self.commit_message.clear();
                 }
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {

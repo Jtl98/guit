@@ -59,6 +59,10 @@ impl Git {
         }
     }
 
+    pub fn commit(&self, message: &str) {
+        self.execute_and_log(["commit", "-m", message]);
+    }
+
     fn split_by_newline(&self, text: &[u8]) -> Vec<String> {
         text.split(|byte| *byte == b'\n')
             .filter(|bytes| !bytes.is_empty())
