@@ -2,6 +2,7 @@ use log::{Level, LevelFilter, Log, Metadata, Record};
 use std::{
     fmt::{self, Display, Formatter},
     sync::RwLock,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 pub static LOGGER: Logger = Logger::new();
@@ -39,7 +40,13 @@ impl Log for Logger {
             return;
         }
 
+        let time = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs();
+
         let entry = Entry {
+            time,
             level: record.level(),
             message: trimmed_args.to_owned(),
         };
@@ -56,13 +63,14 @@ impl Log for Logger {
 }
 
 pub struct Entry {
+    time: u64,
     pub level: Level,
     message: String,
 }
 
 impl Display for Entry {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.level, self.message)
+        write!(f, "[{} {}] {}", self.time, self.level, self.message)
     }
 }
 
