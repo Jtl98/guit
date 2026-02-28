@@ -1,4 +1,9 @@
-use crate::{common::Action, common::DiffKey, git::Git, repo::Repo};
+use crate::{
+    common::{Action, DiffKey},
+    git::Git,
+    log::LOGGER,
+    repo::Repo,
+};
 use eframe::{
     Frame,
     egui::{
@@ -97,6 +102,20 @@ impl eframe::App for App {
                 .show(ctx, |ui| {
                     ScrollArea::both().show(ui, |ui| {
                         ui.take_available_space();
+
+                        for entry in LOGGER.entries.read().unwrap().iter() {
+                            let colour = match entry.level {
+                                log::Level::Error => Color32::RED,
+                                log::Level::Warn => Color32::YELLOW,
+                                log::Level::Info => Color32::WHITE,
+                                log::Level::Debug | log::Level::Trace => ui.visuals().text_color(),
+                            };
+
+                            ui.add(
+                                Label::new(RichText::new(entry).monospace().color(colour))
+                                    .wrap_mode(TextWrapMode::Extend),
+                            );
+                        }
                     });
                 });
         }
