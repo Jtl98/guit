@@ -89,8 +89,16 @@ impl Git {
     {
         match self.execute(args) {
             Ok(output) => {
-                info!("{}", String::from_utf8_lossy(&output.stdout));
-                error!("{}", String::from_utf8_lossy(&output.stderr));
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                let stderr = String::from_utf8_lossy(&output.stderr);
+
+                if output.status.success() {
+                    info!("{}", stdout);
+                    info!("{}", stderr);
+                } else {
+                    error!("{}", stdout);
+                    error!("{}", stderr);
+                }
             }
             Err(error) => error!("{}", error),
         }
