@@ -2,7 +2,7 @@ use log::{Level, LevelFilter, Log, Metadata, Record};
 use std::{
     collections::VecDeque,
     fmt::{self, Display, Formatter},
-    sync::RwLock,
+    sync::{RwLock, RwLockReadGuard},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -14,10 +14,14 @@ pub fn init() {
 }
 
 pub struct Logger {
-    pub entries: RwLock<VecDeque<Entry>>,
+    entries: RwLock<VecDeque<Entry>>,
 }
 
 impl Logger {
+    pub fn read(&self) -> RwLockReadGuard<'_, VecDeque<Entry>> {
+        self.entries.read().unwrap()
+    }
+
     const fn new() -> Self {
         Self {
             entries: RwLock::new(VecDeque::new()),

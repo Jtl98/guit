@@ -129,7 +129,7 @@ impl eframe::App for App {
                     ScrollArea::both().show(ui, |ui| {
                         ui.take_available_space();
 
-                        for entry in LOGGER.entries.read().unwrap().iter() {
+                        for entry in LOGGER.read().iter() {
                             let colour = match entry.level {
                                 log::Level::Error => Color32::RED,
                                 log::Level::Warn => Color32::YELLOW,
