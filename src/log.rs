@@ -1,5 +1,6 @@
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use std::{
+    collections::VecDeque,
     fmt::{self, Display, Formatter},
     sync::RwLock,
     time::{SystemTime, UNIX_EPOCH},
@@ -13,13 +14,13 @@ pub fn init() {
 }
 
 pub struct Logger {
-    pub entries: RwLock<Vec<Entry>>,
+    pub entries: RwLock<VecDeque<Entry>>,
 }
 
 impl Logger {
     const fn new() -> Self {
         Self {
-            entries: RwLock::new(Vec::new()),
+            entries: RwLock::new(VecDeque::new()),
         }
     }
 }
@@ -56,7 +57,7 @@ impl Log for Logger {
             Level::Info | Level::Debug | Level::Trace => println!("{}", entry),
         }
 
-        self.entries.write().unwrap().push(entry);
+        self.entries.write().unwrap().push_front(entry);
     }
 
     fn flush(&self) {}
