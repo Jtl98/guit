@@ -4,6 +4,7 @@ pub enum Action {
     Refresh,
     AddOrRestore(DiffKey),
     Commit(String),
+    Switch(String),
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]

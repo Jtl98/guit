@@ -45,6 +45,10 @@ impl App {
                     git.commit(&message);
                     Self::refresh(&git, &repo);
                 }),
+                Action::Switch(branch) => Box::new(move || {
+                    git.switch(&branch);
+                    Self::refresh(&git, &repo);
+                }),
             };
 
             Self::execute(func, ctx);
@@ -120,7 +124,9 @@ impl eframe::App for App {
                     .selected_text(&repo.branches.current)
                     .show_ui(ui, |ui| {
                         for branch in &repo.branches.other {
-                            ui.label(branch);
+                            if ui.selectable_label(false, branch).clicked() {
+                                action = Some(Action::Switch(branch.clone()));
+                            }
                         }
                     });
 

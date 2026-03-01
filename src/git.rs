@@ -75,14 +75,19 @@ impl Git {
         let mut other = Vec::new();
 
         for branch in branches {
-            if branch.starts_with("* ") {
-                current = branch[2..].to_string();
-            } else {
-                other.push(branch);
+            let trimmed = branch[2..].to_string();
+
+            match branch.starts_with("* ") {
+                true => current = trimmed,
+                false => other.push(trimmed),
             }
         }
 
         Ok(Branches { current, other })
+    }
+
+    pub fn switch(&self, branch: &str) {
+        self.execute_and_log(["switch", branch])
     }
 
     fn split_by_newline(&self, text: &[u8]) -> Vec<String> {
