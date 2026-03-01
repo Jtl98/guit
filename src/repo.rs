@@ -2,10 +2,7 @@ use crate::{
     common::{Branches, DiffKey},
     git::Git,
 };
-use std::{
-    collections::{HashMap, HashSet},
-    io,
-};
+use std::{collections::HashMap, io};
 
 type Diffs = HashMap<DiffKey, String>;
 
@@ -13,7 +10,6 @@ type Diffs = HashMap<DiffKey, String>;
 pub struct Repo {
     pub diffs: Diffs,
     pub branches: Branches,
-    remotes: HashSet<String>,
 }
 
 impl Repo {
@@ -27,12 +23,7 @@ impl Repo {
             })
             .collect::<io::Result<Diffs>>()?;
         let branches = git.branches()?;
-        let remotes = git.remote()?;
 
-        Ok(Self {
-            diffs,
-            branches,
-            remotes,
-        })
+        Ok(Self { diffs, branches })
     }
 }

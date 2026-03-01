@@ -1,10 +1,16 @@
+use std::{
+    collections::HashSet,
+    fmt::{self, Display, Formatter},
+    hash::{Hash, Hasher},
+};
+
 pub enum Action {
     Pull,
     Push,
     Refresh,
     AddOrRestore(DiffKey),
     Commit(String),
-    Switch(String),
+    Switch(Branch),
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]
@@ -33,5 +39,40 @@ pub enum DiffArea {
 #[derive(Default)]
 pub struct Branches {
     pub current: String,
-    pub other: Vec<String>,
+    pub other: HashSet<Branch>,
+}
+
+#[derive(Clone, Eq)]
+pub struct Branch {
+    pub name: String,
+    pub area: BranchArea,
+}
+
+impl Display for Branch {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let Branch { name, area } = self;
+
+        match area {
+            BranchArea::Local => write!(f, "{name}"),
+            BranchArea::Remote(remote) => write!(f, "{remote}/{name}"),
+        }
+    }
+}
+
+impl Hash for Branch {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state)
+    }
+}
+
+impl PartialEq for Branch {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+    }
+}
+
+#[derive(Clone, Eq, Hash, PartialEq)]
+pub enum BranchArea {
+    Local,
+    Remote(String),
 }

@@ -124,7 +124,7 @@ impl eframe::App for App {
                     .selected_text(&repo.branches.current)
                     .show_ui(ui, |ui| {
                         for branch in &repo.branches.other {
-                            if ui.selectable_label(false, branch).clicked() {
+                            if ui.selectable_label(false, branch.to_string()).clicked() {
                                 action = Some(Action::Switch(branch.clone()));
                             }
                         }

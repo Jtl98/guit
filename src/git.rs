@@ -1,4 +1,4 @@
-use crate::common::{Branches, DiffArea, DiffKey};
+use crate::common::{Branch, BranchArea, Branches, DiffArea, DiffKey};
 use log::{error, info};
 use regex::Regex;
 use std::{
@@ -69,30 +69,67 @@ impl Git {
     }
 
     pub fn branches(&self) -> io::Result<Branches> {
-        let Output { stdout, .. } = self.execute(["branch", "-a"])?;
-        let branches = self.split_by_newline_vec(&stdout);
+        let local_branches = self.branch()?;
+        let remote_branches = self.branch_remotes()?;
+        let remotes = self.remote()?;
 
         let mut current = String::new();
-        let mut other = Vec::new();
+        let mut other = HashSet::new();
 
-        for branch in branches {
-            let trimmed = branch[2..].to_string();
+        for branch in &local_branches {
+            let trimmed = branch[2..].to_owned();
 
-            match branch.starts_with("* ") {
-                true => current = trimmed,
-                false => other.push(trimmed),
+            if branch.starts_with("* ") {
+                current = trimmed;
+            } else {
+                other.insert(Branch {
+                    name: trimmed,
+                    area: BranchArea::Local,
+                });
+            }
+        }
+
+        for branch in &remote_branches {
+            for remote in &remotes {
+                if let Some(name) = branch.strip_prefix(&format!("  {remote}/"))
+                    && !name.contains(' ')
+                    && name != current
+                {
+                    other.insert(Branch {
+                        name: name.to_owned(),
+                        area: BranchArea::Remote(remote.to_owned()),
+                    });
+                }
             }
         }
 
         Ok(Branches { current, other })
     }
 
-    pub fn switch(&self, branch: &str) {
-        self.execute_and_log(["switch", branch])
+    pub fn switch(&self, branch: &Branch) {
+        let Branch { name, area } = branch;
+
+        match area {
+            BranchArea::Local => self.execute_and_log(["switch", name]),
+            BranchArea::Remote(remote) => {
+                let start_point = format!("{remote}/{name}");
+                self.execute_and_log(["switch", "--create", name, &start_point])
+            }
+        }
     }
 
-    pub fn remote(&self) -> io::Result<HashSet<String>> {
+    fn remote(&self) -> io::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute(["remote"])?;
+        Ok(self.split_by_newline(&stdout))
+    }
+
+    fn branch(&self) -> io::Result<HashSet<String>> {
+        let Output { stdout, .. } = self.execute(["branch"])?;
+        Ok(self.split_by_newline(&stdout))
+    }
+
+    fn branch_remotes(&self) -> io::Result<HashSet<String>> {
+        let Output { stdout, .. } = self.execute(["branch", "--remotes"])?;
         Ok(self.split_by_newline(&stdout))
     }
 
