@@ -67,6 +67,13 @@ impl Git {
         self.execute_and_log(["commit", "-m", message]);
     }
 
+    pub fn current_branch(&self) -> io::Result<String> {
+        let Output { stdout, .. } = self.execute(["branch", "--show-current"])?;
+        let trimmed = stdout.trim_ascii();
+
+        Ok(String::from_utf8_lossy(trimmed).to_string())
+    }
+
     fn split_by_newline(&self, text: &[u8]) -> Vec<String> {
         text.split(|byte| *byte == b'\n')
             .filter(|bytes| !bytes.is_empty())

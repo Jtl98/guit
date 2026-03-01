@@ -7,8 +7,8 @@ use crate::{
 use eframe::{
     Frame,
     egui::{
-        Align, Button, CentralPanel, Color32, Context, Label, Layout, RichText, ScrollArea,
-        SidePanel, TextWrapMode, TopBottomPanel,
+        Align, Button, CentralPanel, Color32, ComboBox, Context, Label, Layout, RichText,
+        ScrollArea, SidePanel, TextWrapMode, TopBottomPanel,
     },
 };
 use log::error;
@@ -113,6 +113,12 @@ impl eframe::App for App {
                     action = Some(Action::Commit(self.commit_message.clone()));
                     self.commit_message.clear();
                 }
+
+                let repo = self.repo.read().unwrap();
+
+                ComboBox::from_id_salt("branches")
+                    .selected_text(&repo.current_branch)
+                    .show_ui(ui, |_ui| {});
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui.selectable_label(self.show_logs, "logs").clicked() {
