@@ -8,7 +8,7 @@ use eframe::{
     Frame,
     egui::{
         Align, Button, CentralPanel, Color32, ComboBox, Context, Label, Layout, RichText,
-        ScrollArea, SidePanel, TextWrapMode, TopBottomPanel,
+        ScrollArea, SidePanel, TextWrapMode, TopBottomPanel, Ui,
     },
 };
 use log::{error, warn};
@@ -200,54 +200,38 @@ impl eframe::App for App {
         }
 
         SidePanel::left("paths").show(ctx, |ui| {
-            ScrollArea::both()
-                .id_salt("unstaged")
-                .max_height(ui.available_height() / 2.0)
-                .show(ui, |ui| {
-                    ui.take_available_space();
+            let mut show_keys = |ui: &mut Ui, id: &str, filter: fn(&&DiffKey) -> bool| {
+                ScrollArea::both()
+                    .id_salt(id)
+                    .max_height(ui.available_height() / 2.0)
+                    .show(ui, |ui| {
+                        ui.take_available_space();
 
-                    let repo = self.repo.read().unwrap();
-                    let keys = repo.diffs.keys().filter(DiffKey::is_not_staged);
-                    for key in keys {
-                        let response =
-                            ui.selectable_label(self.selected_key.as_ref() == Some(key), &key.path);
+                        let repo = self.repo.read().unwrap();
+                        let keys = repo.diffs.keys().filter(filter);
+                        for key in keys {
+                            let response = ui.selectable_label(
+                                self.selected_key.as_ref() == Some(key),
+                                &key.path,
+                            );
 
-                        if response.double_clicked() {
-                            self.selected_key = None;
-                            action = Some(Action::AddOrRestore(key.clone()));
-                        } else if response.clicked() {
-                            self.selected_key = if self.selected_key.is_none() {
-                                Some(key.clone())
-                            } else {
-                                None
+                            if response.double_clicked() {
+                                self.selected_key = None;
+                                action = Some(Action::AddOrRestore(key.clone()));
+                            } else if response.clicked() {
+                                self.selected_key = if self.selected_key.is_none() {
+                                    Some(key.clone())
+                                } else {
+                                    None
+                                }
                             }
                         }
-                    }
-                });
+                    });
+            };
 
+            show_keys(ui, "unstaged", DiffKey::is_not_staged);
             ui.separator();
-
-            ScrollArea::both().id_salt("staged").show(ui, |ui| {
-                ui.take_available_space();
-
-                let repo = self.repo.read().unwrap();
-                let keys = repo.diffs.keys().filter(DiffKey::is_staged);
-                for key in keys {
-                    let response =
-                        ui.selectable_label(self.selected_key.as_ref() == Some(key), &key.path);
-
-                    if response.double_clicked() {
-                        self.selected_key = None;
-                        action = Some(Action::AddOrRestore(key.clone()));
-                    } else if response.clicked() {
-                        self.selected_key = if self.selected_key.is_none() {
-                            Some(key.clone())
-                        } else {
-                            None
-                        }
-                    }
-                }
-            });
+            show_keys(ui, "staged", DiffKey::is_staged);
         });
 
         CentralPanel::default().show(ctx, |ui| {
