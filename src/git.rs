@@ -90,6 +90,11 @@ impl Git {
         self.execute_and_log(["switch", branch])
     }
 
+    pub fn remote(&self) -> io::Result<Vec<String>> {
+        let Output { stdout, .. } = self.execute(["remote"])?;
+        Ok(self.split_by_newline(&stdout))
+    }
+
     fn split_by_newline(&self, text: &[u8]) -> Vec<String> {
         text.split(|byte| *byte == b'\n')
             .filter(|bytes| !bytes.is_empty())

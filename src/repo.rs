@@ -10,6 +10,7 @@ type Diffs = HashMap<DiffKey, String>;
 pub struct Repo {
     pub diffs: Diffs,
     pub branches: Branches,
+    remotes: Vec<String>,
 }
 
 impl Repo {
@@ -23,7 +24,12 @@ impl Repo {
             })
             .collect::<io::Result<Diffs>>()?;
         let branches = git.branches()?;
+        let remotes = git.remote()?;
 
-        Ok(Self { diffs, branches })
+        Ok(Self {
+            diffs,
+            branches,
+            remotes,
+        })
     }
 }
