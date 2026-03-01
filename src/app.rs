@@ -11,8 +11,10 @@ use eframe::{
         ScrollArea, SidePanel, TextWrapMode, TopBottomPanel,
     },
 };
-use log::error;
+use log::{error, warn};
+use rfd::FileDialog;
 use std::{
+    env,
     sync::{Arc, RwLock},
     thread::{self},
 };
@@ -34,6 +36,20 @@ impl App {
             let repo = Arc::clone(&self.repo);
 
             let func: Box<dyn FnOnce() + Send + 'static> = match action {
+                Action::Open => {
+                    let Some(dir) = FileDialog::new().pick_folder() else {
+                        warn!("no folder picked");
+                        return;
+                    };
+
+                    Box::new(move || match git.rev_parse_show_toplevel(dir) {
+                        Ok(dir) => match env::set_current_dir(dir) {
+                            Ok(_) => Self::refresh(&git, &repo),
+                            Err(error) => error!("{}", error),
+                        },
+                        Err(error) => error!("{}", error),
+                    })
+                }
                 Action::Fetch => Box::new(move || git.fetch_all()),
                 Action::Pull => Box::new(move || git.pull()),
                 Action::Push => Box::new(move || git.push()),
@@ -85,6 +101,13 @@ impl eframe::App for App {
 
         TopBottomPanel::top("menu").show(ctx, |ui| {
             ui.horizontal(|ui| {
+                if ui
+                    .add_enabled(!self.is_executing, Button::new("open"))
+                    .clicked()
+                {
+                    action = Some(Action::Open);
+                }
+
                 if ui
                     .add_enabled(!self.is_executing, Button::new("refresh"))
                     .clicked()

@@ -6,6 +6,7 @@ use std::{
     ffi::OsStr,
     fs,
     io::{self},
+    path::Path,
     process::{Command, Output},
     sync::LazyLock,
 };
@@ -110,6 +111,13 @@ impl Git {
         Ok(Branches { current, other })
     }
 
+    pub fn rev_parse_show_toplevel<P: AsRef<Path>>(&self, dir: P) -> io::Result<String> {
+        let Output { stdout, .. } = self.execute_in_dir(["rev-parse", "--show-toplevel"], dir)?;
+        let trimmed = stdout.trim_ascii();
+
+        Ok(String::from_utf8_lossy(trimmed).to_string())
+    }
+
     pub fn switch(&self, branch: &Branch) {
         let Branch { name, area } = branch;
 
@@ -154,6 +162,15 @@ impl Git {
         S: AsRef<OsStr>,
     {
         Command::new("git").args(args).output()
+    }
+
+    fn execute_in_dir<I, S, P>(&self, args: I, dir: P) -> io::Result<Output>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+        P: AsRef<Path>,
+    {
+        Command::new("git").args(args).current_dir(dir).output()
     }
 
     fn execute_and_log<I, S>(&self, args: I)

@@ -5,6 +5,7 @@ use std::{
 };
 
 pub enum Action {
+    Open,
     Fetch,
     Pull,
     Push,
