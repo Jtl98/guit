@@ -7,8 +7,8 @@ use crate::{
 use eframe::{
     Frame,
     egui::{
-        Align, Button, CentralPanel, Color32, ComboBox, Context, Label, Layout, RichText,
-        ScrollArea, SidePanel, TextWrapMode, TopBottomPanel, Ui,
+        Align, Button, CentralPanel, Color32, ComboBox, Context, Key, Label, Layout, RichText,
+        ScrollArea, SidePanel, TextEdit, TextWrapMode, TopBottomPanel, Ui,
     },
 };
 use log::{error, warn};
@@ -158,13 +158,19 @@ impl eframe::App for App {
 
         TopBottomPanel::bottom("bottom_menu").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                ui.text_edit_singleline(&mut self.commit_message);
-                if ui
-                    .add_enabled(
-                        !self.is_executing && !self.commit_message.is_empty(),
-                        Button::new("commit"),
-                    )
-                    .clicked()
+                let commit_message_provided = !self.commit_message.trim().is_empty();
+                let text = ui.add_enabled(
+                    !self.is_executing,
+                    TextEdit::singleline(&mut self.commit_message),
+                );
+                let button = ui.add_enabled(
+                    !self.is_executing && commit_message_provided,
+                    Button::new("commit"),
+                );
+
+                if commit_message_provided
+                    && (button.clicked()
+                        || (text.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter))))
                 {
                     action = Some(Action::Commit(self.commit_message.clone()));
                     self.commit_message.clear();
