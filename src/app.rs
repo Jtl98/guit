@@ -99,7 +99,7 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         let mut action = None;
 
-        TopBottomPanel::top("menu").show(ctx, |ui| {
+        TopBottomPanel::top("top_menu").show(ctx, |ui| {
             ui.horizontal(|ui| {
                 if ui
                     .add_enabled(!self.is_executing, Button::new("open"))
@@ -136,19 +136,6 @@ impl eframe::App for App {
                     action = Some(Action::Push);
                 }
 
-                ui.text_edit_singleline(&mut self.commit_message);
-
-                if ui
-                    .add_enabled(
-                        !self.is_executing && !self.commit_message.is_empty(),
-                        Button::new("commit"),
-                    )
-                    .clicked()
-                {
-                    action = Some(Action::Commit(self.commit_message.clone()));
-                    self.commit_message.clear();
-                }
-
                 let repo = self.repo.read().unwrap();
 
                 ComboBox::from_id_salt("branches")
@@ -160,6 +147,22 @@ impl eframe::App for App {
                             }
                         }
                     });
+            });
+        });
+
+        TopBottomPanel::bottom("bottom_menu").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                ui.text_edit_singleline(&mut self.commit_message);
+                if ui
+                    .add_enabled(
+                        !self.is_executing && !self.commit_message.is_empty(),
+                        Button::new("commit"),
+                    )
+                    .clicked()
+                {
+                    action = Some(Action::Commit(self.commit_message.clone()));
+                    self.commit_message.clear();
+                }
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui.selectable_label(self.show_logs, "logs").clicked() {
