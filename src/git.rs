@@ -2,6 +2,7 @@ use crate::common::{Branches, DiffArea, DiffKey};
 use log::{error, info};
 use regex::Regex;
 use std::{
+    collections::HashSet,
     ffi::OsStr,
     fs,
     io::{self},
@@ -29,7 +30,7 @@ impl Git {
 
     pub fn diff_name_only(&self) -> io::Result<Vec<DiffKey>> {
         let create_keys = |stdout, area| -> Vec<DiffKey> {
-            self.split_by_newline(stdout)
+            self.split_by_newline_vec(stdout)
                 .into_iter()
                 .map(|path| DiffKey { path, area })
                 .collect()
@@ -69,7 +70,7 @@ impl Git {
 
     pub fn branches(&self) -> io::Result<Branches> {
         let Output { stdout, .. } = self.execute(["branch", "-a"])?;
-        let branches = self.split_by_newline(&stdout);
+        let branches = self.split_by_newline_vec(&stdout);
 
         let mut current = String::new();
         let mut other = Vec::new();
@@ -90,16 +91,20 @@ impl Git {
         self.execute_and_log(["switch", branch])
     }
 
-    pub fn remote(&self) -> io::Result<Vec<String>> {
+    pub fn remote(&self) -> io::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute(["remote"])?;
         Ok(self.split_by_newline(&stdout))
     }
 
-    fn split_by_newline(&self, text: &[u8]) -> Vec<String> {
+    fn split_by_newline<T: FromIterator<String>>(&self, text: &[u8]) -> T {
         text.split(|byte| *byte == b'\n')
             .filter(|bytes| !bytes.is_empty())
             .map(|bytes| String::from_utf8_lossy(bytes).to_string())
             .collect()
+    }
+
+    fn split_by_newline_vec(&self, text: &[u8]) -> Vec<String> {
+        self.split_by_newline(text)
     }
 
     fn execute<I, S>(&self, args: I) -> io::Result<Output>
