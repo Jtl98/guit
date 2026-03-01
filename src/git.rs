@@ -1,6 +1,5 @@
 use crate::common::{Branch, BranchArea, Branches, DiffArea, DiffKey};
 use log::{error, info};
-use regex::Regex;
 use std::{
     collections::HashSet,
     ffi::OsStr,
@@ -8,25 +7,26 @@ use std::{
     io::{self},
     path::Path,
     process::{Command, Output},
-    sync::LazyLock,
 };
 
 #[derive(Default)]
 pub struct Git;
 
 impl Git {
-    pub fn diff(&self, key: &DiffKey) -> io::Result<String> {
-        static RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r"diff --git .*\nindex .*\n--- .*\n\+\+\+ .*\n").unwrap());
+    pub fn diff(&self, DiffKey { path, area }: &DiffKey) -> io::Result<String> {
+        let Output { stdout, .. } = match area {
+            DiffArea::Untracked => return fs::read_to_string(path),
+            DiffArea::Unstaged => self.execute(["diff", path]),
+            DiffArea::Staged => self.execute(["diff", "--staged", path]),
+        }?;
+        let header_end = stdout
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &byte)| (byte == b'\n').then_some(i))
+            .nth(3)
+            .map_or(0, |i| i + 1);
 
-        let bytes = match key.area {
-            DiffArea::Untracked => fs::read(&key.path)?,
-            DiffArea::Unstaged => self.execute(["diff", &key.path])?.stdout,
-            DiffArea::Staged => self.execute(["diff", "--staged", &key.path])?.stdout,
-        };
-        let diff = String::from_utf8_lossy(&bytes);
-
-        Ok(RE.replace_all(&diff, "").to_string())
+        Ok(String::from_utf8_lossy(&stdout[header_end..]).to_string())
     }
 
     pub fn diff_name_only(&self) -> io::Result<Vec<DiffKey>> {
