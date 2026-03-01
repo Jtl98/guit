@@ -28,3 +28,9 @@ pub enum DiffArea {
     Unstaged,
     Staged,
 }
+
+#[derive(Default)]
+pub struct Branches {
+    pub current: String,
+    pub other: Vec<String>,
+}

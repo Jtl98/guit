@@ -1,4 +1,4 @@
-use crate::common::{DiffArea, DiffKey};
+use crate::common::{Branches, DiffArea, DiffKey};
 use log::{error, info};
 use regex::Regex;
 use std::{
@@ -67,11 +67,22 @@ impl Git {
         self.execute_and_log(["commit", "-m", message]);
     }
 
-    pub fn current_branch(&self) -> io::Result<String> {
-        let Output { stdout, .. } = self.execute(["branch", "--show-current"])?;
-        let trimmed = stdout.trim_ascii();
+    pub fn branches(&self) -> io::Result<Branches> {
+        let Output { stdout, .. } = self.execute(["branch", "-a"])?;
+        let branches = self.split_by_newline(&stdout);
 
-        Ok(String::from_utf8_lossy(trimmed).to_string())
+        let mut current = String::new();
+        let mut other = Vec::new();
+
+        for branch in branches {
+            if branch.starts_with("* ") {
+                current = branch[2..].to_string();
+            } else {
+                other.push(branch);
+            }
+        }
+
+        Ok(Branches { current, other })
     }
 
     fn split_by_newline(&self, text: &[u8]) -> Vec<String> {

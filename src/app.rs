@@ -117,8 +117,12 @@ impl eframe::App for App {
                 let repo = self.repo.read().unwrap();
 
                 ComboBox::from_id_salt("branches")
-                    .selected_text(&repo.current_branch)
-                    .show_ui(ui, |_ui| {});
+                    .selected_text(&repo.branches.current)
+                    .show_ui(ui, |ui| {
+                        for branch in &repo.branches.other {
+                            ui.label(branch);
+                        }
+                    });
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui.selectable_label(self.show_logs, "logs").clicked() {
