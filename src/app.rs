@@ -173,6 +173,12 @@ impl eframe::App for App {
             TopBottomPanel::bottom("logs")
                 .resizable(true)
                 .show(ctx, |ui| {
+                    ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
+                        if ui.button("clear").clicked() {
+                            LOGGER.clear();
+                        }
+                    });
+
                     ScrollArea::both().show(ui, |ui| {
                         ui.take_available_space();
 

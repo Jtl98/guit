@@ -22,6 +22,10 @@ impl Logger {
         self.entries.read().unwrap()
     }
 
+    pub fn clear(&self) {
+        self.entries.write().unwrap().clear()
+    }
+
     const fn new() -> Self {
         Self {
             entries: RwLock::new(VecDeque::new()),
