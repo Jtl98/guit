@@ -209,12 +209,19 @@ impl eframe::App for App {
                     let repo = self.repo.read().unwrap();
                     let keys = repo.diffs.keys().filter(DiffKey::is_not_staged);
                     for key in keys {
-                        if ui
-                            .selectable_value(&mut self.selected_key, Some(key.clone()), &key.path)
-                            .double_clicked()
-                        {
-                            action = Some(Action::AddOrRestore(key.clone()))
-                        };
+                        let response =
+                            ui.selectable_label(self.selected_key.as_ref() == Some(key), &key.path);
+
+                        if response.double_clicked() {
+                            self.selected_key = None;
+                            action = Some(Action::AddOrRestore(key.clone()));
+                        } else if response.clicked() {
+                            self.selected_key = if self.selected_key.is_none() {
+                                Some(key.clone())
+                            } else {
+                                None
+                            }
+                        }
                     }
                 });
 
@@ -226,12 +233,19 @@ impl eframe::App for App {
                 let repo = self.repo.read().unwrap();
                 let keys = repo.diffs.keys().filter(DiffKey::is_staged);
                 for key in keys {
-                    if ui
-                        .selectable_value(&mut self.selected_key, Some(key.clone()), &key.path)
-                        .double_clicked()
-                    {
-                        action = Some(Action::AddOrRestore(key.clone()))
-                    };
+                    let response =
+                        ui.selectable_label(self.selected_key.as_ref() == Some(key), &key.path);
+
+                    if response.double_clicked() {
+                        self.selected_key = None;
+                        action = Some(Action::AddOrRestore(key.clone()));
+                    } else if response.clicked() {
+                        self.selected_key = if self.selected_key.is_none() {
+                            Some(key.clone())
+                        } else {
+                            None
+                        }
+                    }
                 }
             });
         });
