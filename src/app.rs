@@ -34,6 +34,7 @@ impl App {
             let repo = Arc::clone(&self.repo);
 
             let func: Box<dyn FnOnce() + Send + 'static> = match action {
+                Action::Fetch => Box::new(move || git.fetch_all()),
                 Action::Pull => Box::new(move || git.pull()),
                 Action::Push => Box::new(move || git.push()),
                 Action::Refresh => Box::new(move || Self::refresh(&git, &repo)),
@@ -89,6 +90,13 @@ impl eframe::App for App {
                     .clicked()
                 {
                     action = Some(Action::Refresh);
+                }
+
+                if ui
+                    .add_enabled(!self.is_executing, Button::new("fetch"))
+                    .clicked()
+                {
+                    action = Some(Action::Fetch);
                 }
 
                 if ui

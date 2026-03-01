@@ -49,6 +49,10 @@ impl Git {
         Ok(keys)
     }
 
+    pub fn fetch_all(&self) {
+        self.execute_and_log(["fetch", "--all"])
+    }
+
     pub fn pull(&self) {
         self.execute_and_log(["pull"])
     }

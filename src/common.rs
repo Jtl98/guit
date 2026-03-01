@@ -5,6 +5,7 @@ use std::{
 };
 
 pub enum Action {
+    Fetch,
     Pull,
     Push,
     Refresh,
