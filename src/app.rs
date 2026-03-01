@@ -147,6 +147,12 @@ impl eframe::App for App {
                             }
                         }
                     });
+
+                if self.is_executing {
+                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                        ui.spinner();
+                    });
+                }
             });
         });
 
