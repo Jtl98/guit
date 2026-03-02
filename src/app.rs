@@ -18,7 +18,8 @@ use eframe::{
 use log::{error, warn};
 use rfd::FileDialog;
 use std::{
-    env,
+    env, io,
+    path::Path,
     sync::{Arc, RwLock},
     thread::{self},
 };
@@ -53,14 +54,8 @@ impl App {
                     return;
                 };
 
-                match self.git.rev_parse_show_toplevel(dir) {
-                    Ok(dir) => match env::set_current_dir(dir) {
-                        Ok(_) => match Repo::new(&self.git) {
-                            Ok(repo) => self.repo = Some(Arc::new(RwLock::new(repo))),
-                            Err(error) => error!("{}", error),
-                        },
-                        Err(error) => error!("{}", error),
-                    },
+                match self.open_repo(dir) {
+                    Ok(repo) => self.repo = Some(Arc::new(RwLock::new(repo))),
                     Err(error) => error!("{}", error),
                 }
             }
@@ -111,6 +106,12 @@ impl App {
             func();
             ctx.request_repaint();
         });
+    }
+
+    fn open_repo<P: AsRef<Path>>(&self, dir: P) -> io::Result<Repo> {
+        let dir = self.git.rev_parse_show_toplevel(dir)?;
+        env::set_current_dir(dir)?;
+        Repo::new(&self.git)
     }
 
     fn refresh(git: &Git, repo: &RwLock<Repo>) {
