@@ -13,6 +13,55 @@ use std::{
 pub struct Git;
 
 impl Git {
+    pub fn add_or_restore(&self, key: &DiffKey) {
+        match key.area {
+            DiffArea::Untracked | DiffArea::Unstaged => self.execute_and_log(["add", &key.path]),
+            DiffArea::Staged => self.execute_and_log(["restore", "--staged", &key.path]),
+        }
+    }
+
+    pub fn branches(&self) -> io::Result<Branches> {
+        let local_branches = self.branch()?;
+        let remote_branches = self.branch_remotes()?;
+        let remotes = self.remote()?;
+
+        let mut current = String::new();
+        let mut other = HashSet::new();
+
+        for branch in &local_branches {
+            let trimmed = branch[2..].to_owned();
+
+            if branch.starts_with("* ") {
+                current = trimmed;
+            } else {
+                other.insert(Branch {
+                    name: trimmed,
+                    area: BranchArea::Local,
+                });
+            }
+        }
+
+        for branch in &remote_branches {
+            for remote in &remotes {
+                if let Some(name) = branch.strip_prefix(&format!("  {remote}/"))
+                    && !name.contains(' ')
+                    && name != current
+                {
+                    other.insert(Branch {
+                        name: name.to_owned(),
+                        area: BranchArea::Remote(remote.to_owned()),
+                    });
+                }
+            }
+        }
+
+        Ok(Branches { current, other })
+    }
+
+    pub fn commit(&self, message: &str) {
+        self.execute_and_log(["commit", "-m", message]);
+    }
+
     pub fn diff(&self, DiffKey { path, area }: &DiffKey) -> io::Result<String> {
         let Output { stdout, .. } = match area {
             DiffArea::Untracked => return fs::read_to_string(path),
@@ -63,55 +112,6 @@ impl Git {
         self.execute_and_log(["push"])
     }
 
-    pub fn add_or_restore(&self, key: &DiffKey) {
-        match key.area {
-            DiffArea::Untracked | DiffArea::Unstaged => self.execute_and_log(["add", &key.path]),
-            DiffArea::Staged => self.execute_and_log(["restore", "--staged", &key.path]),
-        }
-    }
-
-    pub fn commit(&self, message: &str) {
-        self.execute_and_log(["commit", "-m", message]);
-    }
-
-    pub fn branches(&self) -> io::Result<Branches> {
-        let local_branches = self.branch()?;
-        let remote_branches = self.branch_remotes()?;
-        let remotes = self.remote()?;
-
-        let mut current = String::new();
-        let mut other = HashSet::new();
-
-        for branch in &local_branches {
-            let trimmed = branch[2..].to_owned();
-
-            if branch.starts_with("* ") {
-                current = trimmed;
-            } else {
-                other.insert(Branch {
-                    name: trimmed,
-                    area: BranchArea::Local,
-                });
-            }
-        }
-
-        for branch in &remote_branches {
-            for remote in &remotes {
-                if let Some(name) = branch.strip_prefix(&format!("  {remote}/"))
-                    && !name.contains(' ')
-                    && name != current
-                {
-                    other.insert(Branch {
-                        name: name.to_owned(),
-                        area: BranchArea::Remote(remote.to_owned()),
-                    });
-                }
-            }
-        }
-
-        Ok(Branches { current, other })
-    }
-
     pub fn rev_parse_show_toplevel<P: AsRef<Path>>(&self, dir: P) -> io::Result<String> {
         let Output { stdout, .. } = self.execute_in_dir(["rev-parse", "--show-toplevel"], dir)?;
         let trimmed = stdout.trim_ascii();
@@ -131,11 +131,6 @@ impl Git {
         }
     }
 
-    fn remote(&self) -> io::Result<HashSet<String>> {
-        let Output { stdout, .. } = self.execute(["remote"])?;
-        Ok(self.split_by_newline(&stdout))
-    }
-
     fn branch(&self) -> io::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute(["branch"])?;
         Ok(self.split_by_newline(&stdout))
@@ -143,6 +138,11 @@ impl Git {
 
     fn branch_remotes(&self) -> io::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute(["branch", "--remotes"])?;
+        Ok(self.split_by_newline(&stdout))
+    }
+
+    fn remote(&self) -> io::Result<HashSet<String>> {
+        let Output { stdout, .. } = self.execute(["remote"])?;
         Ok(self.split_by_newline(&stdout))
     }
 
