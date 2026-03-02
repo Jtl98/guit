@@ -180,11 +180,15 @@ impl Git {
         S: AsRef<OsStr>,
     {
         match self.execute(args) {
-            Ok(output) => {
-                let stdout = String::from_utf8_lossy(&output.stdout);
-                let stderr = String::from_utf8_lossy(&output.stderr);
+            Ok(Output {
+                status,
+                stdout,
+                stderr,
+            }) => {
+                let stdout = String::from_utf8_lossy(&stdout);
+                let stderr = String::from_utf8_lossy(&stderr);
 
-                if output.status.success() {
+                if status.success() {
                     info!("{}", stdout);
                     info!("{}", stderr);
                 } else {
