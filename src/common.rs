@@ -11,6 +11,7 @@ pub enum Action {
 
 pub enum MainAction {
     Open,
+    Close,
 }
 
 pub enum RepoAction {

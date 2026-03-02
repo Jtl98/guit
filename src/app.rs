@@ -1,7 +1,7 @@
 use crate::{
     common::{
         Action, DiffKey,
-        MainAction::{self, Open},
+        MainAction::{self, Close, Open},
         RepoAction::{self, AddOrRestore, Commit, Fetch, Pull, Push, Refresh, Switch},
     },
     git::Git,
@@ -63,6 +63,9 @@ impl App {
                     },
                     Err(error) => error!("{}", error),
                 }
+            }
+            Close => {
+                self.repo = None;
             }
         }
     }
@@ -176,11 +179,15 @@ impl eframe::App for App {
                         }
                     });
 
-                if self.is_executing {
-                    ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if ui.button("close").clicked() {
+                        action = Some(Action::Main(Close));
+                    }
+
+                    if self.is_executing {
                         ui.spinner();
-                    });
-                }
+                    }
+                });
             });
         });
 
