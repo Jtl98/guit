@@ -28,7 +28,7 @@ pub struct App {
     is_executing: bool,
     show_logs: bool,
     git: Arc<Git>,
-    repo: Arc<RwLock<Repo>>,
+    repo: Option<Arc<RwLock<Repo>>>,
     selected_key: Option<DiffKey>,
     commit_message: String,
 }
@@ -45,7 +45,7 @@ impl App {
         self.is_executing = Arc::strong_count(&self.git) > 1;
     }
 
-    fn execute_main_action(&self, action: MainAction) {
+    fn execute_main_action(&mut self, action: MainAction) {
         match action {
             Open => {
                 let Some(dir) = FileDialog::new().pick_folder() else {
@@ -55,7 +55,10 @@ impl App {
 
                 match self.git.rev_parse_show_toplevel(dir) {
                     Ok(dir) => match env::set_current_dir(dir) {
-                        Ok(_) => Self::refresh(&self.git, &self.repo),
+                        Ok(_) => match Repo::new(&self.git) {
+                            Ok(repo) => self.repo = Some(Arc::new(RwLock::new(repo))),
+                            Err(error) => error!("{}", error),
+                        },
                         Err(error) => error!("{}", error),
                     },
                     Err(error) => error!("{}", error),
@@ -65,8 +68,12 @@ impl App {
     }
 
     fn execute_repo_action(&self, action: RepoAction, ctx: &Context) {
+        let Some(ref repo) = self.repo else {
+            return;
+        };
+
         let git = Arc::clone(&self.git);
-        let repo = Arc::clone(&self.repo);
+        let repo = Arc::clone(repo);
 
         let func: Box<dyn FnOnce() + Send + 'static> = match action {
             Fetch => Box::new(move || git.fetch_all()),
@@ -115,15 +122,20 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         let mut action = None;
 
-        TopBottomPanel::top("top_menu").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                if ui
-                    .add_enabled(!self.is_executing, Button::new("open"))
-                    .clicked()
-                {
+        let Some(ref repo) = self.repo else {
+            CentralPanel::default().show(ctx, |ui| {
+                if ui.button("open").clicked() {
                     action = Some(Action::Main(Open));
                 }
+            });
 
+            self.update(action, ctx);
+
+            return;
+        };
+
+        TopBottomPanel::top("top_menu").show(ctx, |ui| {
+            ui.horizontal(|ui| {
                 if ui
                     .add_enabled(!self.is_executing, Button::new("refresh"))
                     .clicked()
@@ -152,7 +164,7 @@ impl eframe::App for App {
                     action = Some(Action::Repo(Push));
                 }
 
-                let repo = self.repo.read().unwrap();
+                let repo = repo.read().unwrap();
 
                 ComboBox::from_id_salt("branches")
                     .selected_text(&repo.branches.current)
@@ -238,7 +250,7 @@ impl eframe::App for App {
                     .show(ui, |ui| {
                         ui.take_available_space();
 
-                        let repo = self.repo.read().unwrap();
+                        let repo = repo.read().unwrap();
                         let keys = repo.diffs.keys().filter(filter);
                         for key in keys {
                             let checked = self.selected_key.as_ref() == Some(key);
@@ -263,7 +275,7 @@ impl eframe::App for App {
             ScrollArea::both().show(ui, |ui| {
                 ui.take_available_space();
 
-                let repo = self.repo.read().unwrap();
+                let repo = repo.read().unwrap();
                 if let Some(selected_key) = &self.selected_key
                     && let Some(diff) = repo.diffs.get(selected_key)
                 {
