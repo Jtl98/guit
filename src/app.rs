@@ -225,20 +225,14 @@ impl eframe::App for App {
                         let repo = self.repo.read().unwrap();
                         let keys = repo.diffs.keys().filter(filter);
                         for key in keys {
-                            let response = ui.selectable_label(
-                                self.selected_key.as_ref() == Some(key),
-                                &key.path,
-                            );
+                            let checked = self.selected_key.as_ref() == Some(key);
+                            let response = ui.selectable_label(checked, &key.path);
 
                             if response.double_clicked() {
-                                self.selected_key = None;
                                 action = Some(Action::AddOrRestore(key.clone()));
+                                self.selected_key = None;
                             } else if response.clicked() {
-                                self.selected_key = if self.selected_key.is_none() {
-                                    Some(key.clone())
-                                } else {
-                                    None
-                                }
+                                self.selected_key = if checked { None } else { Some(key.clone()) }
                             }
                         }
                     });
