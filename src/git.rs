@@ -22,7 +22,8 @@ impl Git {
         let header_end = stdout
             .iter()
             .enumerate()
-            .filter_map(|(i, &byte)| (byte == b'\n').then_some(i))
+            .filter(|(_, byte)| **byte == b'\n')
+            .map(|(i, _)| i)
             .nth(3)
             .map_or(0, |i| i + 1);
 
