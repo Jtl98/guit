@@ -1,5 +1,9 @@
 use crate::{
-    common::{Action, DiffKey},
+    common::{
+        Action, DiffKey,
+        MainAction::{self, Open},
+        RepoAction::{self, AddOrRestore, Commit, Fetch, Pull, Push, Refresh, Switch},
+    },
     git::Git,
     log::LOGGER,
     repo::Repo,
@@ -32,46 +36,58 @@ pub struct App {
 impl App {
     fn update(&mut self, action: Option<Action>, ctx: &Context) {
         if let Some(action) = action {
-            let git = Arc::clone(&self.git);
-            let repo = Arc::clone(&self.repo);
-
-            let func: Box<dyn FnOnce() + Send + 'static> = match action {
-                Action::Open => {
-                    let Some(dir) = FileDialog::new().pick_folder() else {
-                        warn!("no folder picked");
-                        return;
-                    };
-
-                    Box::new(move || match git.rev_parse_show_toplevel(dir) {
-                        Ok(dir) => match env::set_current_dir(dir) {
-                            Ok(_) => Self::refresh(&git, &repo),
-                            Err(error) => error!("{}", error),
-                        },
-                        Err(error) => error!("{}", error),
-                    })
-                }
-                Action::Fetch => Box::new(move || git.fetch_all()),
-                Action::Pull => Box::new(move || git.pull()),
-                Action::Push => Box::new(move || git.push()),
-                Action::Refresh => Box::new(move || Self::refresh(&git, &repo)),
-                Action::AddOrRestore(key) => Box::new(move || {
-                    git.add_or_restore(&key);
-                    Self::refresh(&git, &repo);
-                }),
-                Action::Commit(message) => Box::new(move || {
-                    git.commit(&message);
-                    Self::refresh(&git, &repo);
-                }),
-                Action::Switch(branch) => Box::new(move || {
-                    git.switch(&branch);
-                    Self::refresh(&git, &repo);
-                }),
-            };
-
-            Self::execute(func, ctx);
+            match action {
+                Action::Main(action) => self.execute_main_action(action),
+                Action::Repo(action) => self.execute_repo_action(action, ctx),
+            }
         }
 
         self.is_executing = Arc::strong_count(&self.git) > 1;
+    }
+
+    fn execute_main_action(&self, action: MainAction) {
+        match action {
+            Open => {
+                let Some(dir) = FileDialog::new().pick_folder() else {
+                    warn!("no folder picked");
+                    return;
+                };
+
+                match self.git.rev_parse_show_toplevel(dir) {
+                    Ok(dir) => match env::set_current_dir(dir) {
+                        Ok(_) => Self::refresh(&self.git, &self.repo),
+                        Err(error) => error!("{}", error),
+                    },
+                    Err(error) => error!("{}", error),
+                }
+            }
+        }
+    }
+
+    fn execute_repo_action(&self, action: RepoAction, ctx: &Context) {
+        let git = Arc::clone(&self.git);
+        let repo = Arc::clone(&self.repo);
+
+        let func: Box<dyn FnOnce() + Send + 'static> = match action {
+            Fetch => Box::new(move || git.fetch_all()),
+            Pull => Box::new(move || git.pull()),
+            Push => Box::new(move || git.push()),
+            Refresh => Box::new(move || Self::refresh(&git, &repo)),
+            AddOrRestore(key) => Box::new(move || {
+                git.add_or_restore(&key);
+                Self::refresh(&git, &repo);
+            }),
+            Commit(message) => Box::new(move || {
+                git.commit(&message);
+                Self::refresh(&git, &repo);
+            }),
+            Switch(branch) => Box::new(move || {
+                git.switch(&branch);
+                Self::refresh(&git, &repo);
+            }),
+        };
+
+        Self::execute(func, ctx);
     }
 
     fn execute<F>(func: F, ctx: &Context)
@@ -105,35 +121,35 @@ impl eframe::App for App {
                     .add_enabled(!self.is_executing, Button::new("open"))
                     .clicked()
                 {
-                    action = Some(Action::Open);
+                    action = Some(Action::Main(Open));
                 }
 
                 if ui
                     .add_enabled(!self.is_executing, Button::new("refresh"))
                     .clicked()
                 {
-                    action = Some(Action::Refresh);
+                    action = Some(Action::Repo(Refresh));
                 }
 
                 if ui
                     .add_enabled(!self.is_executing, Button::new("fetch"))
                     .clicked()
                 {
-                    action = Some(Action::Fetch);
+                    action = Some(Action::Repo(Fetch));
                 }
 
                 if ui
                     .add_enabled(!self.is_executing, Button::new("pull"))
                     .clicked()
                 {
-                    action = Some(Action::Pull);
+                    action = Some(Action::Repo(Pull));
                 }
 
                 if ui
                     .add_enabled(!self.is_executing, Button::new("push"))
                     .clicked()
                 {
-                    action = Some(Action::Push);
+                    action = Some(Action::Repo(Push));
                 }
 
                 let repo = self.repo.read().unwrap();
@@ -143,7 +159,7 @@ impl eframe::App for App {
                     .show_ui(ui, |ui| {
                         for branch in &repo.branches.other {
                             if ui.selectable_label(false, branch.to_string()).clicked() {
-                                action = Some(Action::Switch(branch.clone()));
+                                action = Some(Action::Repo(Switch(branch.clone())));
                             }
                         }
                     });
@@ -172,7 +188,7 @@ impl eframe::App for App {
                     && (button.clicked()
                         || (text.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter))))
                 {
-                    action = Some(Action::Commit(self.commit_message.clone()));
+                    action = Some(Action::Repo(Commit(self.commit_message.clone())));
                     self.commit_message.clear();
                 }
 
@@ -229,7 +245,7 @@ impl eframe::App for App {
                             let response = ui.selectable_label(checked, &key.path);
 
                             if response.double_clicked() {
-                                action = Some(Action::AddOrRestore(key.clone()));
+                                action = Some(Action::Repo(AddOrRestore(key.clone())));
                                 self.selected_key = None;
                             } else if response.clicked() {
                                 self.selected_key = if checked { None } else { Some(key.clone()) }

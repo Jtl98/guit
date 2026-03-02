@@ -5,7 +5,15 @@ use std::{
 };
 
 pub enum Action {
+    Main(MainAction),
+    Repo(RepoAction),
+}
+
+pub enum MainAction {
     Open,
+}
+
+pub enum RepoAction {
     Fetch,
     Pull,
     Push,
