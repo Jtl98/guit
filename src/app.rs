@@ -12,7 +12,7 @@ use eframe::{
     Frame,
     egui::{
         Align, Button, CentralPanel, Color32, ComboBox, Context, Key, Label, Layout, RichText,
-        ScrollArea, SidePanel, TextEdit, TextWrapMode, TopBottomPanel, Ui,
+        ScrollArea, SidePanel, TextEdit, TextWrapMode, TopBottomPanel, Ui, Vec2,
     },
 };
 use log::{error, warn};
@@ -128,9 +128,14 @@ impl eframe::App for App {
 
         let Some(ref repo) = self.repo else {
             CentralPanel::default().show(ctx, |ui| {
-                if ui.button("open").clicked() {
-                    action = Some(Action::Main(Open));
-                }
+                ui.vertical_centered(|ui| {
+                    ui.spacing_mut().button_padding = Vec2::new(32.0, 16.0);
+                    ui.add_space(ui.available_height() / 3.0);
+
+                    if ui.button(RichText::new("open").size(32.0)).clicked() {
+                        action = Some(Action::Main(Open));
+                    }
+                });
             });
 
             self.update(action, ctx);
