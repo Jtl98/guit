@@ -110,12 +110,13 @@ impl App {
 
     fn open_repo<P: AsRef<Path>>(&self, dir: P) -> io::Result<Repo> {
         let dir = self.git.rev_parse_show_toplevel(dir)?;
-        env::set_current_dir(dir)?;
-        Repo::new(&self.git)
+        env::set_current_dir(&dir)?;
+        Repo::new(&self.git, dir)
     }
 
     fn refresh(git: &Git, repo: &RwLock<Repo>) {
-        match Repo::new(git) {
+        let dir = repo.read().unwrap().dir.clone();
+        match Repo::new(git, dir) {
             Ok(new_repo) => *repo.write().unwrap() = new_repo,
             Err(error) => error!("{}", error),
         }
@@ -221,6 +222,9 @@ impl eframe::App for App {
                     if ui.selectable_label(self.show_logs, "logs").clicked() {
                         self.show_logs = !self.show_logs;
                     }
+
+                    let dir = &repo.read().unwrap().dir;
+                    ui.label(dir);
                 });
             });
         });

@@ -8,12 +8,13 @@ type Diffs = HashMap<DiffKey, String>;
 
 #[derive(Default)]
 pub struct Repo {
+    pub dir: String,
     pub diffs: Diffs,
     pub branches: Branches,
 }
 
 impl Repo {
-    pub fn new(git: &Git) -> io::Result<Self> {
+    pub fn new(git: &Git, dir: String) -> io::Result<Self> {
         let diffs = git
             .diff_name_only()?
             .into_iter()
@@ -24,6 +25,10 @@ impl Repo {
             .collect::<io::Result<Diffs>>()?;
         let branches = git.branches()?;
 
-        Ok(Self { diffs, branches })
+        Ok(Self {
+            dir,
+            diffs,
+            branches,
+        })
     }
 }
