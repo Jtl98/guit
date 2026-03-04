@@ -1,16 +1,31 @@
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
+    fs::File,
     hash::{Hash, Hasher},
+    io,
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
 
+type RecentRepos = HashSet<RecentRepo>;
+
 #[derive(Default)]
 pub struct Config {
-    repos: HashSet<RecentRepo>,
+    repos: RecentRepos,
 }
 
 impl Config {
+    const DIR: &str = env!("CARGO_MANIFEST_DIR");
+    const FILE: &str = "config.json";
+
+    pub fn new() -> io::Result<Self> {
+        let mut new = Self::default();
+        new.load()?;
+
+        Ok(new)
+    }
+
     pub fn add_repo(&mut self, path: PathBuf) {
         let repo = RecentRepo::new(path);
         self.repos.replace(repo);
@@ -22,9 +37,33 @@ impl Config {
 
         repos
     }
+
+    pub fn load(&mut self) -> io::Result<()> {
+        let file = self.open_file()?;
+        let repos: RecentRepos = serde_json::from_reader(file)?;
+
+        self.repos = repos;
+        Ok(())
+    }
+
+    pub fn save(&self) -> io::Result<()> {
+        let file = self.open_file()?;
+
+        serde_json::to_writer(file, &self.repos)?;
+        Ok(())
+    }
+
+    fn open_file(&self) -> io::Result<File> {
+        let path = format!("{}/{}", Self::DIR, Self::FILE);
+        File::options()
+            .create(true)
+            .write(true)
+            .read(true)
+            .open(path)
+    }
 }
 
-#[derive(Eq)]
+#[derive(Deserialize, Eq, Serialize)]
 pub struct RecentRepo {
     pub path: PathBuf,
     opened: u64,

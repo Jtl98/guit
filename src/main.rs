@@ -16,5 +16,5 @@ fn main() -> eframe::Result {
         ..Default::default()
     };
 
-    eframe::run_native("guit", options, Box::new(|_cc| Ok(Box::<App>::default())))
+    eframe::run_native("guit", options, Box::new(|_cc| Ok(Box::new(App::new()))))
 }

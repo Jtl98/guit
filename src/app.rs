@@ -37,6 +37,17 @@ pub struct App {
 }
 
 impl App {
+    pub fn new() -> Self {
+        let config = Config::new()
+            .inspect_err(|error| error!("{}", error))
+            .unwrap_or_default();
+
+        Self {
+            config,
+            ..Default::default()
+        }
+    }
+
     fn update(&mut self, action: Option<Action>, ctx: &Context) {
         if let Some(action) = action {
             match action {
@@ -122,7 +133,7 @@ impl App {
         self.config.add_repo(dir);
         self.repo = Some(Arc::new(RwLock::new(repo)));
 
-        Ok(())
+        self.config.save()
     }
 
     fn refresh(git: &Git, repo: &RwLock<Repo>) {
