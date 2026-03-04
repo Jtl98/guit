@@ -2,6 +2,7 @@ use std::{
     collections::HashSet,
     fmt::{self, Display, Formatter},
     hash::{Hash, Hasher},
+    path::PathBuf,
 };
 
 pub enum Action {
@@ -11,6 +12,7 @@ pub enum Action {
 
 pub enum MainAction {
     Open,
+    OpenRecent(PathBuf),
     Close,
 }
 

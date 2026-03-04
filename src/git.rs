@@ -5,7 +5,7 @@ use std::{
     ffi::OsStr,
     fs,
     io::{self},
-    path::Path,
+    path::{Path, PathBuf},
     process::{Command, Output},
 };
 
@@ -112,11 +112,12 @@ impl Git {
         self.execute_and_log(["push"])
     }
 
-    pub fn rev_parse_show_toplevel<P: AsRef<Path>>(&self, dir: P) -> io::Result<String> {
+    pub fn rev_parse_show_toplevel<P: AsRef<Path>>(&self, dir: P) -> io::Result<PathBuf> {
         let Output { stdout, .. } = self.execute_in_dir(["rev-parse", "--show-toplevel"], dir)?;
-        let trimmed = stdout.trim_ascii();
+        let trimmed = stdout.trim_ascii_end();
+        let lossy = String::from_utf8_lossy(trimmed).to_string();
 
-        Ok(String::from_utf8_lossy(trimmed).to_string())
+        Ok(PathBuf::from(lossy))
     }
 
     pub fn switch(&self, branch: &Branch) {

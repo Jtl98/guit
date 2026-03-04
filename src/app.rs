@@ -1,9 +1,10 @@
 use crate::{
     common::{
         Action, DiffKey,
-        MainAction::{self, Close, Open},
+        MainAction::{self, Close, Open, OpenRecent},
         RepoAction::{self, AddOrRestore, Commit, Fetch, Pull, Push, Refresh, Switch},
     },
+    config::{Config, RecentRepo},
     git::Git,
     log::LOGGER,
     repo::Repo,
@@ -26,6 +27,7 @@ use std::{
 
 #[derive(Default)]
 pub struct App {
+    config: Config,
     is_executing: bool,
     show_logs: bool,
     git: Arc<Git>,
@@ -54,9 +56,13 @@ impl App {
                     return;
                 };
 
-                match self.open_repo(dir) {
-                    Ok(repo) => self.repo = Some(Arc::new(RwLock::new(repo))),
-                    Err(error) => error!("{}", error),
+                if let Err(error) = self.open_repo(dir) {
+                    error!("{}", error);
+                }
+            }
+            OpenRecent(path) => {
+                if let Err(error) = self.open_repo(path) {
+                    error!("{}", error);
                 }
             }
             Close => {
@@ -108,10 +114,15 @@ impl App {
         });
     }
 
-    fn open_repo<P: AsRef<Path>>(&self, dir: P) -> io::Result<Repo> {
+    fn open_repo<P: AsRef<Path>>(&mut self, dir: P) -> io::Result<()> {
         let dir = self.git.rev_parse_show_toplevel(dir)?;
+        let repo = Repo::new(&self.git, dir.clone())?;
         env::set_current_dir(&dir)?;
-        Repo::new(&self.git, dir)
+
+        self.config.add_repo(dir);
+        self.repo = Some(Arc::new(RwLock::new(repo)));
+
+        Ok(())
     }
 
     fn refresh(git: &Git, repo: &RwLock<Repo>) {
@@ -135,6 +146,12 @@ impl eframe::App for App {
 
                     if ui.button(RichText::new("open").size(32.0)).clicked() {
                         action = Some(Action::Main(Open));
+                    }
+
+                    for RecentRepo { path, .. } in self.config.recent_repos() {
+                        if ui.button(path.to_string_lossy()).clicked() {
+                            action = Some(Action::Main(OpenRecent(path.clone())))
+                        }
                     }
                 });
             });
@@ -223,7 +240,9 @@ impl eframe::App for App {
                         self.show_logs = !self.show_logs;
                     }
 
-                    let dir = &repo.read().unwrap().dir;
+                    let repo = repo.read().unwrap();
+                    let dir = repo.dir.to_string_lossy();
+
                     ui.label(dir);
                 });
             });
