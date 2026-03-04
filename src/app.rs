@@ -260,10 +260,10 @@ impl eframe::App for App {
         }
 
         SidePanel::left("paths").show(ctx, |ui| {
-            let mut show_keys = |ui: &mut Ui, id: &str, filter: fn(&&DiffKey) -> bool| {
+            let mut show_keys = |ui: &mut Ui, id, max_height, filter: fn(&&DiffKey) -> bool| {
                 ScrollArea::both()
                     .id_salt(id)
-                    .max_height(ui.available_height() / 2.0)
+                    .max_height(max_height)
                     .show(ui, |ui| {
                         ui.take_available_space();
 
@@ -283,9 +283,14 @@ impl eframe::App for App {
                     });
             };
 
-            show_keys(ui, "unstaged", DiffKey::is_not_staged);
+            show_keys(
+                ui,
+                "unstaged",
+                ui.available_height() / 2.0,
+                DiffKey::is_not_staged,
+            );
             ui.separator();
-            show_keys(ui, "staged", DiffKey::is_staged);
+            show_keys(ui, "staged", ui.available_height(), DiffKey::is_staged);
         });
 
         CentralPanel::default().show(ctx, |ui| {
