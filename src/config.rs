@@ -57,6 +57,7 @@ impl Config {
         let path = format!("{}/{}", Self::DIR, Self::FILE);
         File::options()
             .create(true)
+            .truncate(false)
             .write(true)
             .read(true)
             .open(path)
