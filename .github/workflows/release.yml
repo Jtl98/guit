@@ -1,0 +1,60 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-release-exists:
+    runs-on: ubuntu-latest
+    outputs:
+      release-version: ${{ steps.version.outputs.release-version }}
+      release-exists: ${{ steps.exists.outputs.release-exists }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+
+      - id: version
+        name: version
+        run: |
+          release_version=$(cargo metadata --no-deps --format-version 1 | jq '.packages[0].version')
+          echo "release-version=$release_version" >> "$GITHUB_OUTPUT"
+
+      - id: exists
+        name: exists
+        run: |
+          if gh release view "${{ steps.version.outputs.release-version }}"; then
+            echo "release-exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release-exists=false" >> "$GITHUB_OUTPUT"
+
+  release:
+    runs-on: ubuntu-latest
+    needs: check-release-exists
+    if: needs.check-release-exists.outputs.release-exists == 'false'
+    steps:
+      - name: cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: build
+        run: cargo build --release
+
+      - name: test
+        run: cargo test
+
+      - name: package
+        run: tar -czf "guit-${{ needs.check-release-exists.outputs.release-version }}"
+
+      - name: release
+        run: gh release create "${{ needs.check-release-exists.outputs.release-version }}" --generate-notes target/release/guit
