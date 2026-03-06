@@ -111,7 +111,7 @@ impl Git {
         self.execute_and_log(["push"]);
     }
 
-    pub fn rev_parse_show_toplevel<P: AsRef<Path>>(&self, dir: P) -> anyhow::Result<PathBuf> {
+    pub fn rev_parse_show_toplevel(&self, dir: &Path) -> anyhow::Result<PathBuf> {
         let Output { stdout, .. } = self.execute_in_dir(["rev-parse", "--show-toplevel"], dir)?;
         let trimmed = stdout.trim_ascii_end();
         let lossy = String::from_utf8_lossy(trimmed).to_string();
@@ -157,23 +157,35 @@ impl Git {
         self.split_by_newline(text)
     }
 
+    fn create_command<I, S>(&self, args: I, dir: Option<&Path>) -> anyhow::Result<Output>
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        let mut command = Command::new("git");
+        command.args(args);
+
+        if let Some(dir) = dir {
+            command.current_dir(dir);
+        }
+
+        Ok(command.output()?)
+    }
+
     fn execute<I, S>(&self, args: I) -> anyhow::Result<Output>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        let output = Command::new("git").args(args).output()?;
-        Ok(output)
+        self.create_command(args, None)
     }
 
-    fn execute_in_dir<I, S, P>(&self, args: I, dir: P) -> anyhow::Result<Output>
+    fn execute_in_dir<I, S>(&self, args: I, dir: &Path) -> anyhow::Result<Output>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
-        P: AsRef<Path>,
     {
-        let output = Command::new("git").args(args).current_dir(dir).output()?;
-        Ok(output)
+        self.create_command(args, Some(dir))
     }
 
     fn execute_and_log<I, S>(&self, args: I)

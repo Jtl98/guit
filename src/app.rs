@@ -67,12 +67,12 @@ impl App {
                     return;
                 };
 
-                if let Err(error) = self.open_repo(dir) {
+                if let Err(error) = self.open_repo(&dir) {
                     error!("{}", error);
                 }
             }
             OpenRecent(path) => {
-                if let Err(error) = self.open_repo(path) {
+                if let Err(error) = self.open_repo(&path) {
                     error!("{}", error);
                 }
             }
@@ -125,7 +125,7 @@ impl App {
         });
     }
 
-    fn open_repo<P: AsRef<Path>>(&mut self, dir: P) -> anyhow::Result<()> {
+    fn open_repo(&mut self, dir: &Path) -> anyhow::Result<()> {
         let dir = self.git.rev_parse_show_toplevel(dir)?;
         let repo = Repo::new(&self.git, dir.clone())?;
         env::set_current_dir(&dir)?;
