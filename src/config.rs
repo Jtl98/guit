@@ -3,7 +3,6 @@ use std::{
     collections::HashSet,
     fs::File,
     hash::{Hash, Hasher},
-    io,
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
 };
@@ -19,7 +18,7 @@ impl Config {
     const DIR: &str = env!("CARGO_MANIFEST_DIR");
     const FILE: &str = "config.json";
 
-    pub fn new() -> io::Result<Self> {
+    pub fn new() -> anyhow::Result<Self> {
         let mut new = Self::default();
         new.load()?;
 
@@ -38,7 +37,7 @@ impl Config {
         repos
     }
 
-    pub fn load(&mut self) -> io::Result<()> {
+    pub fn load(&mut self) -> anyhow::Result<()> {
         let file = self.open_file()?;
         let repos: RecentRepos = serde_json::from_reader(file)?;
 
@@ -46,21 +45,23 @@ impl Config {
         Ok(())
     }
 
-    pub fn save(&self) -> io::Result<()> {
+    pub fn save(&self) -> anyhow::Result<()> {
         let file = self.open_file()?;
 
         serde_json::to_writer(file, &self.repos)?;
         Ok(())
     }
 
-    fn open_file(&self) -> io::Result<File> {
+    fn open_file(&self) -> anyhow::Result<File> {
         let path = format!("{}/{}", Self::DIR, Self::FILE);
-        File::options()
+        let file = File::options()
             .create(true)
             .truncate(false)
             .write(true)
             .read(true)
-            .open(path)
+            .open(path)?;
+
+        Ok(file)
     }
 }
 

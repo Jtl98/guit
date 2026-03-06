@@ -19,7 +19,7 @@ use eframe::{
 use log::{error, warn};
 use rfd::FileDialog;
 use std::{
-    env, io,
+    env,
     path::Path,
     sync::{Arc, RwLock},
     thread::{self},
@@ -125,15 +125,16 @@ impl App {
         });
     }
 
-    fn open_repo<P: AsRef<Path>>(&mut self, dir: P) -> io::Result<()> {
+    fn open_repo<P: AsRef<Path>>(&mut self, dir: P) -> anyhow::Result<()> {
         let dir = self.git.rev_parse_show_toplevel(dir)?;
         let repo = Repo::new(&self.git, dir.clone())?;
         env::set_current_dir(&dir)?;
 
         self.config.add_repo(dir);
         self.repo = Some(Arc::new(RwLock::new(repo)));
+        self.config.save()?;
 
-        self.config.save()
+        Ok(())
     }
 
     fn refresh(git: &Git, repo: &RwLock<Repo>) {

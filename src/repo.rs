@@ -2,7 +2,7 @@ use crate::{
     common::{Branches, DiffKey},
     git::Git,
 };
-use std::{collections::HashMap, io, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf};
 
 type Diffs = HashMap<DiffKey, String>;
 
@@ -14,7 +14,7 @@ pub struct Repo {
 }
 
 impl Repo {
-    pub fn new(git: &Git, dir: PathBuf) -> io::Result<Self> {
+    pub fn new(git: &Git, dir: PathBuf) -> anyhow::Result<Self> {
         let diffs = git
             .diff_name_only()?
             .into_iter()
@@ -22,7 +22,7 @@ impl Repo {
                 let diff = git.diff(&key)?;
                 Ok((key, diff))
             })
-            .collect::<io::Result<Diffs>>()?;
+            .collect::<anyhow::Result<Diffs>>()?;
         let branches = git.branches()?;
 
         Ok(Self {
