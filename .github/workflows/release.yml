@@ -56,7 +56,7 @@ jobs:
         run: cargo build --release
 
       - name: test
-        run: cargo test
+        run: cargo test --release
 
       - name: package
         run: tar -czf "guit-${{ needs.check-release-exists.outputs.release-version }}"
