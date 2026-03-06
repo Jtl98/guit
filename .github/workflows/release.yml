@@ -62,4 +62,4 @@ jobs:
         run: tar -czf "guit-${{ needs.check-release-exists.outputs.release-version }}" target/release/guit
 
       - name: release
-        run: gh release create "${{ needs.check-release-exists.outputs.release-version }}" --generate-notes target/release/guit
+        run: gh release create "${{ needs.check-release-exists.outputs.release-version }}" --generate-notes "guit-${{ needs.check-release-exists.outputs.release-version }}"
