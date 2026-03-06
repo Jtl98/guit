@@ -4,7 +4,6 @@ use std::{
     collections::HashSet,
     ffi::OsStr,
     fs,
-    io::{self},
     path::{Path, PathBuf},
     process::{Command, Output},
 };
@@ -20,7 +19,7 @@ impl Git {
         }
     }
 
-    pub fn branches(&self) -> io::Result<Branches> {
+    pub fn branches(&self) -> anyhow::Result<Branches> {
         let local_branches = self.branch()?;
         let remote_branches = self.branch_remotes()?;
         let remotes = self.remote()?;
@@ -62,9 +61,9 @@ impl Git {
         self.execute_and_log(["commit", "-m", message]);
     }
 
-    pub fn diff(&self, DiffKey { path, area }: &DiffKey) -> io::Result<String> {
+    pub fn diff(&self, DiffKey { path, area }: &DiffKey) -> anyhow::Result<String> {
         let Output { stdout, .. } = match area {
-            DiffArea::Untracked => return fs::read_to_string(path),
+            DiffArea::Untracked => return Ok(fs::read_to_string(path)?),
             DiffArea::Unstaged => self.execute(["diff", path]),
             DiffArea::Staged => self.execute(["diff", "--staged", path]),
         }?;
@@ -79,7 +78,7 @@ impl Git {
         Ok(String::from_utf8_lossy(&stdout[header_end..]).to_string())
     }
 
-    pub fn diff_name_only(&self) -> io::Result<Vec<DiffKey>> {
+    pub fn diff_name_only(&self) -> anyhow::Result<Vec<DiffKey>> {
         let create_keys = |stdout, area| -> Vec<DiffKey> {
             self.split_by_newline_vec(stdout)
                 .into_iter()
@@ -112,7 +111,7 @@ impl Git {
         self.execute_and_log(["push"])
     }
 
-    pub fn rev_parse_show_toplevel<P: AsRef<Path>>(&self, dir: P) -> io::Result<PathBuf> {
+    pub fn rev_parse_show_toplevel<P: AsRef<Path>>(&self, dir: P) -> anyhow::Result<PathBuf> {
         let Output { stdout, .. } = self.execute_in_dir(["rev-parse", "--show-toplevel"], dir)?;
         let trimmed = stdout.trim_ascii_end();
         let lossy = String::from_utf8_lossy(trimmed).to_string();
@@ -132,17 +131,17 @@ impl Git {
         }
     }
 
-    fn branch(&self) -> io::Result<HashSet<String>> {
+    fn branch(&self) -> anyhow::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute(["branch"])?;
         Ok(self.split_by_newline(&stdout))
     }
 
-    fn branch_remotes(&self) -> io::Result<HashSet<String>> {
+    fn branch_remotes(&self) -> anyhow::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute(["branch", "--remotes"])?;
         Ok(self.split_by_newline(&stdout))
     }
 
-    fn remote(&self) -> io::Result<HashSet<String>> {
+    fn remote(&self) -> anyhow::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute(["remote"])?;
         Ok(self.split_by_newline(&stdout))
     }
@@ -158,21 +157,23 @@ impl Git {
         self.split_by_newline(text)
     }
 
-    fn execute<I, S>(&self, args: I) -> io::Result<Output>
+    fn execute<I, S>(&self, args: I) -> anyhow::Result<Output>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        Command::new("git").args(args).output()
+        let output = Command::new("git").args(args).output()?;
+        Ok(output)
     }
 
-    fn execute_in_dir<I, S, P>(&self, args: I, dir: P) -> io::Result<Output>
+    fn execute_in_dir<I, S, P>(&self, args: I, dir: P) -> anyhow::Result<Output>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
         P: AsRef<Path>,
     {
-        Command::new("git").args(args).current_dir(dir).output()
+        let output = Command::new("git").args(args).current_dir(dir).output()?;
+        Ok(output)
     }
 
     fn execute_and_log<I, S>(&self, args: I)
