@@ -100,15 +100,15 @@ impl Git {
     }
 
     pub fn fetch_all(&self) {
-        self.execute_and_log(["fetch", "--all"])
+        self.execute_and_log(["fetch", "--all"]);
     }
 
     pub fn pull(&self) {
-        self.execute_and_log(["pull"])
+        self.execute_and_log(["pull"]);
     }
 
     pub fn push(&self) {
-        self.execute_and_log(["push"])
+        self.execute_and_log(["push"]);
     }
 
     pub fn rev_parse_show_toplevel<P: AsRef<Path>>(&self, dir: P) -> anyhow::Result<PathBuf> {

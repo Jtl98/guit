@@ -23,7 +23,7 @@ impl Logger {
     }
 
     pub fn clear(&self) {
-        self.entries.write().unwrap().clear()
+        self.entries.write().unwrap().clear();
     }
 
     const fn new() -> Self {

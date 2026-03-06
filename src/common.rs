@@ -74,7 +74,7 @@ impl Display for Branch {
 
 impl Hash for Branch {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state)
+        self.name.hash(state);
     }
 }
 
