@@ -30,6 +30,7 @@ jobs:
             echo "release-exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "release-exists=false" >> "$GITHUB_OUTPUT"
+          fi
 
   release:
     runs-on: ubuntu-latest
