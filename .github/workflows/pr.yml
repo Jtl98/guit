@@ -1,0 +1,16 @@
+name: pr
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+      - name: build
+        run: cargo build
+      - name: test
+        run: cargo test
