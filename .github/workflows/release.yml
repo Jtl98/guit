@@ -59,7 +59,7 @@ jobs:
         run: cargo test --release
 
       - name: package
-        run: tar -czf "guit-${{ needs.check-release-exists.outputs.release-version }}"
+        run: tar -czf "guit-${{ needs.check-release-exists.outputs.release-version }}" target/release/guit
 
       - name: release
         run: gh release create "${{ needs.check-release-exists.outputs.release-version }}" --generate-notes target/release/guit
