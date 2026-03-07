@@ -64,8 +64,8 @@ impl Git {
     pub fn diff(&self, DiffKey { path, area }: &DiffKey) -> anyhow::Result<String> {
         let Output { stdout, .. } = match area {
             DiffArea::Untracked => return Ok(fs::read_to_string(path)?),
-            DiffArea::Unstaged => self.execute(["diff", path]),
-            DiffArea::Staged => self.execute(["diff", "--staged", path]),
+            DiffArea::Unstaged => self.execute(["diff", path], None),
+            DiffArea::Staged => self.execute(["diff", "--staged", path], None),
         }?;
         let header_end = stdout
             .iter()
@@ -87,10 +87,12 @@ impl Git {
         };
 
         let untracked_stdout = self
-            .execute(["ls-files", "--others", "--exclude-standard"])?
+            .execute(["ls-files", "--others", "--exclude-standard"], None)?
             .stdout;
-        let unstaged_stdout = self.execute(["diff", "--name-only"])?.stdout;
-        let staged_stdout = self.execute(["diff", "--staged", "--name-only"])?.stdout;
+        let unstaged_stdout = self.execute(["diff", "--name-only"], None)?.stdout;
+        let staged_stdout = self
+            .execute(["diff", "--staged", "--name-only"], None)?
+            .stdout;
 
         let mut keys = create_keys(&untracked_stdout, DiffArea::Untracked);
         keys.extend(create_keys(&unstaged_stdout, DiffArea::Unstaged));
@@ -112,7 +114,7 @@ impl Git {
     }
 
     pub fn rev_parse_show_toplevel(&self, dir: &Path) -> anyhow::Result<PathBuf> {
-        let Output { stdout, .. } = self.execute_in_dir(["rev-parse", "--show-toplevel"], dir)?;
+        let Output { stdout, .. } = self.execute(["rev-parse", "--show-toplevel"], Some(dir))?;
         let trimmed = stdout.trim_ascii_end();
         let lossy = String::from_utf8_lossy(trimmed).to_string();
 
@@ -132,17 +134,17 @@ impl Git {
     }
 
     fn branch(&self) -> anyhow::Result<HashSet<String>> {
-        let Output { stdout, .. } = self.execute(["branch"])?;
+        let Output { stdout, .. } = self.execute(["branch"], None)?;
         Ok(self.split_by_newline(&stdout))
     }
 
     fn branch_remotes(&self) -> anyhow::Result<HashSet<String>> {
-        let Output { stdout, .. } = self.execute(["branch", "--remotes"])?;
+        let Output { stdout, .. } = self.execute(["branch", "--remotes"], None)?;
         Ok(self.split_by_newline(&stdout))
     }
 
     fn remote(&self) -> anyhow::Result<HashSet<String>> {
-        let Output { stdout, .. } = self.execute(["remote"])?;
+        let Output { stdout, .. } = self.execute(["remote"], None)?;
         Ok(self.split_by_newline(&stdout))
     }
 
@@ -157,7 +159,7 @@ impl Git {
         self.split_by_newline(text)
     }
 
-    fn create_command<I, S>(&self, args: I, dir: Option<&Path>) -> anyhow::Result<Output>
+    fn execute<I, S>(&self, args: I, dir: Option<&Path>) -> anyhow::Result<Output>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
@@ -172,28 +174,12 @@ impl Git {
         Ok(command.output()?)
     }
 
-    fn execute<I, S>(&self, args: I) -> anyhow::Result<Output>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        self.create_command(args, None)
-    }
-
-    fn execute_in_dir<I, S>(&self, args: I, dir: &Path) -> anyhow::Result<Output>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        self.create_command(args, Some(dir))
-    }
-
     fn execute_and_log<I, S>(&self, args: I)
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        match self.execute(args) {
+        match self.execute(args, None) {
             Ok(Output {
                 status,
                 stdout,
