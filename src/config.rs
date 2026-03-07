@@ -7,12 +7,10 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-type RecentRepos = HashSet<RecentRepo>;
-
 #[derive(Default)]
 pub struct Config {
     path: PathBuf,
-    repos: RecentRepos,
+    repos: HashSet<RecentRepo>,
 }
 
 impl Config {
