@@ -2,16 +2,21 @@ use crate::{
     common::{Branches, DiffKey, Log},
     git::Git,
 };
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    cmp::Reverse,
+    collections::{BTreeMap, HashMap},
+    path::PathBuf,
+};
 
 type Diffs = HashMap<DiffKey, String>;
+type Logs = BTreeMap<Reverse<String>, Vec<Log>>;
 
 #[derive(Default)]
 pub struct Repo {
     pub dir: PathBuf,
     pub diffs: Diffs,
     pub branches: Branches,
-    pub logs: Vec<Log>,
+    pub logs: Logs,
 }
 
 impl Repo {
@@ -25,7 +30,15 @@ impl Repo {
             })
             .collect::<anyhow::Result<Diffs>>()?;
         let branches = git.branches()?;
-        let logs = git.log()?;
+        let logs = git
+            .log()?
+            .into_iter()
+            .fold(BTreeMap::new(), |mut map, log| {
+                let date = log.short_date.clone();
+                let logs = map.entry(Reverse(date)).or_insert(Vec::new());
+                logs.push(log);
+                map
+            });
 
         Ok(Self {
             dir,

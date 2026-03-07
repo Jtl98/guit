@@ -20,7 +20,6 @@ use log::{error, warn};
 use rfd::FileDialog;
 use std::{
     cmp::Reverse,
-    collections::BTreeMap,
     env,
     path::Path,
     sync::{Arc, RwLock},
@@ -349,13 +348,7 @@ impl eframe::App for App {
                         );
                     }
                 } else {
-                    let date_to_logs = repo.logs.iter().fold(BTreeMap::new(), |mut map, log| {
-                        let logs = map.entry(Reverse(&log.short_date)).or_insert(Vec::new());
-                        logs.push(log);
-                        map
-                    });
-
-                    for (Reverse(date), logs) in date_to_logs {
+                    for (Reverse(date), logs) in &repo.logs {
                         ui.add(Label::new(RichText::new(date).monospace().strong()).extend());
 
                         for log in logs {
