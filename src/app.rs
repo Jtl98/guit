@@ -19,6 +19,8 @@ use eframe::{
 use log::{error, warn};
 use rfd::FileDialog;
 use std::{
+    cmp::Reverse,
+    collections::BTreeMap,
     env,
     path::Path,
     sync::{Arc, RwLock},
@@ -347,18 +349,29 @@ impl eframe::App for App {
                         );
                     }
                 } else {
-                    for log in &repo.logs {
-                        let formatted = format!("[{}] {}", log.short_hash, log.subject);
-                        ui.add(Label::new(RichText::new(formatted).monospace()).extend())
-                            .on_hover_ui(|ui| {
-                                ui.style_mut().interaction.selectable_labels = true;
+                    let date_to_logs = repo.logs.iter().fold(BTreeMap::new(), |mut map, log| {
+                        let logs = map.entry(Reverse(&log.short_date)).or_insert(Vec::new());
+                        logs.push(log);
+                        map
+                    });
 
-                                let tooltip = format!(
-                                    "author: {}\ndate: {}\nhash: {}",
-                                    log.author, log.long_date, log.long_hash
-                                );
-                                ui.label(tooltip);
-                            });
+                    for (Reverse(date), logs) in date_to_logs {
+                        ui.add(Label::new(RichText::new(date).monospace().strong()).extend());
+
+                        for log in logs {
+                            let formatted = format!("[{}] {}", log.short_hash, log.subject);
+
+                            ui.add(Label::new(RichText::new(formatted).monospace()).extend())
+                                .on_hover_ui(|ui| {
+                                    ui.style_mut().interaction.selectable_labels = true;
+
+                                    let tooltip = format!(
+                                        "author: {}\ndate: {}\nhash: {}",
+                                        log.author, log.long_date, log.long_hash
+                                    );
+                                    ui.label(tooltip);
+                                });
+                        }
                     }
                 }
             });

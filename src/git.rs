@@ -17,6 +17,8 @@ impl Git {
         '\x1f',
         "%aI",
         '\x1f',
+        "%as",
+        '\x1f',
         "%H",
         '\x1f',
         "%h",
@@ -126,6 +128,7 @@ impl Git {
                 let mut parts = log.split('\x1f');
                 let author = parts.next()?.to_owned();
                 let long_date = parts.next()?.to_owned();
+                let short_date = parts.next()?.to_owned();
                 let long_hash = parts.next()?.to_owned();
                 let short_hash = parts.next()?.to_owned();
                 let subject = parts.next()?.to_owned();
@@ -133,6 +136,7 @@ impl Git {
                 Some(Log {
                     author,
                     long_date,
+                    short_date,
                     long_hash,
                     short_hash,
                     subject,
