@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
-    fs::File,
+    fs::{self, File},
     hash::{Hash, Hasher},
     path::PathBuf,
     time::{SystemTime, UNIX_EPOCH},
@@ -11,16 +11,25 @@ type RecentRepos = HashSet<RecentRepo>;
 
 #[derive(Default)]
 pub struct Config {
+    path: PathBuf,
     repos: RecentRepos,
 }
 
 impl Config {
-    const DIR: &str = env!("CARGO_MANIFEST_DIR");
-    const FILE: &str = "config.json";
-
     pub fn new() -> anyhow::Result<Self> {
-        let mut new = Self::default();
-        new.load()?;
+        let dir = dirs::config_dir().unwrap_or_default().join("guit");
+        fs::create_dir_all(&dir)?;
+
+        let mut new = Self {
+            path: dir.join("config.json"),
+            ..Default::default()
+        };
+
+        if fs::exists(&new.path)? {
+            new.load()?;
+        } else {
+            new.save()?;
+        }
 
         Ok(new)
     }
@@ -37,29 +46,25 @@ impl Config {
         repos
     }
 
-    pub fn load(&mut self) -> anyhow::Result<()> {
-        let file = self.open_file()?;
-        let repos: RecentRepos = serde_json::from_reader(file)?;
-
-        self.repos = repos;
-        Ok(())
-    }
-
     pub fn save(&self) -> anyhow::Result<()> {
         let file = self.open_file()?;
-
         serde_json::to_writer(file, &self.repos)?;
         Ok(())
     }
 
+    fn load(&mut self) -> anyhow::Result<()> {
+        let file = self.open_file()?;
+        self.repos = serde_json::from_reader(file)?;
+        Ok(())
+    }
+
     fn open_file(&self) -> anyhow::Result<File> {
-        let path = format!("{}/{}", Self::DIR, Self::FILE);
         let file = File::options()
             .create(true)
             .truncate(false)
             .write(true)
             .read(true)
-            .open(path)?;
+            .open(&self.path)?;
 
         Ok(file)
     }
