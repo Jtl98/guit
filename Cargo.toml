@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.102"
+dirs = "6.0.0"
 eframe = "0.33.3"
 log = "0.4.29"
 rfd = "0.17.2"
