@@ -349,7 +349,13 @@ impl eframe::App for App {
                 } else {
                     for log in &repo.logs {
                         let formatted = format!("[{}] {}", log.short_hash, log.subject);
-                        ui.add(Label::new(RichText::new(formatted).monospace()).extend());
+                        ui.add(Label::new(RichText::new(formatted).monospace()).extend())
+                            .on_hover_ui(|ui| {
+                                ui.style_mut().interaction.selectable_labels = true;
+
+                                let tooltip = format!("hash: {}", log.long_hash);
+                                ui.label(tooltip);
+                            });
                     }
                 }
             });

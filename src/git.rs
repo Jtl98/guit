@@ -12,7 +12,7 @@ use std::{
 pub struct Git;
 
 impl Git {
-    const LOG_FORMAT: &str = concat!("--format=%h", '\x1f', "%s");
+    const LOG_FORMAT: &str = concat!("--format=%H", '\x1f', "%h", '\x1f', "%s");
 
     pub fn add_or_restore(&self, key: &DiffKey) {
         match key.area {
@@ -114,10 +114,12 @@ impl Git {
             .into_iter()
             .filter_map(|log| {
                 let mut parts = log.split('\x1f');
+                let long_hash = parts.next()?.to_owned();
                 let short_hash = parts.next()?.to_owned();
                 let subject = parts.next()?.to_owned();
 
                 Some(Log {
+                    long_hash,
                     short_hash,
                     subject,
                 })
