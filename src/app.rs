@@ -348,7 +348,8 @@ impl eframe::App for App {
                     }
                 } else {
                     for log in &repo.logs {
-                        ui.add(Label::new(RichText::new(&log.subject).monospace()).extend());
+                        let formatted = format!("[{}] {}", log.short_hash, log.subject);
+                        ui.add(Label::new(RichText::new(formatted).monospace()).extend());
                     }
                 }
             });

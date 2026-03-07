@@ -12,6 +12,8 @@ use std::{
 pub struct Git;
 
 impl Git {
+    const LOG_FORMAT: &str = concat!("--format=%h", '\x1f', "%s");
+
     pub fn add_or_restore(&self, key: &DiffKey) {
         match key.area {
             DiffArea::Untracked | DiffArea::Unstaged => self.execute_and_log(["add", &key.path]),
@@ -106,11 +108,20 @@ impl Git {
     }
 
     pub fn log(&self) -> anyhow::Result<Vec<Log>> {
-        let Output { stdout, .. } = self.execute_here(["log", "--format=%s"])?;
+        let Output { stdout, .. } = self.execute_here(["log", Self::LOG_FORMAT])?;
         let logs = self
             .split_by_newline_vec(&stdout)
             .into_iter()
-            .map(|log| Log { subject: log })
+            .filter_map(|log| {
+                let mut parts = log.split('\x1f');
+                let short_hash = parts.next()?.to_owned();
+                let subject = parts.next()?.to_owned();
+
+                Some(Log {
+                    short_hash,
+                    subject,
+                })
+            })
             .collect();
 
         Ok(logs)
