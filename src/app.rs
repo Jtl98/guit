@@ -353,7 +353,10 @@ impl eframe::App for App {
                             .on_hover_ui(|ui| {
                                 ui.style_mut().interaction.selectable_labels = true;
 
-                                let tooltip = format!("hash: {}", log.long_hash);
+                                let tooltip = format!(
+                                    "author: {}\ndate: {}\nhash: {}",
+                                    log.author, log.long_date, log.long_hash
+                                );
                                 ui.label(tooltip);
                             });
                     }

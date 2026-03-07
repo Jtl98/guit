@@ -91,6 +91,8 @@ pub enum BranchArea {
 }
 
 pub struct Log {
+    pub author: String,
+    pub long_date: String,
     pub long_hash: String,
     pub short_hash: String,
     pub subject: String,
