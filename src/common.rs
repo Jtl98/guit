@@ -89,3 +89,7 @@ pub enum BranchArea {
     Local,
     Remote(String),
 }
+
+pub struct Log {
+    pub subject: String,
+}

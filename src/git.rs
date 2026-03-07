@@ -1,4 +1,4 @@
-use crate::common::{Branch, BranchArea, Branches, DiffArea, DiffKey};
+use crate::common::{Branch, BranchArea, Branches, DiffArea, DiffKey, Log};
 use log::{error, info};
 use std::{
     collections::HashSet,
@@ -103,6 +103,17 @@ impl Git {
 
     pub fn fetch_all(&self) {
         self.execute_and_log(["fetch", "--all"]);
+    }
+
+    pub fn log(&self) -> anyhow::Result<Vec<Log>> {
+        let Output { stdout, .. } = self.execute_here(["log", "--format=%s"])?;
+        let logs = self
+            .split_by_newline_vec(&stdout)
+            .into_iter()
+            .map(|log| Log { subject: log })
+            .collect();
+
+        Ok(logs)
     }
 
     pub fn pull(&self) {

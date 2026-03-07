@@ -1,5 +1,5 @@
 use crate::{
-    common::{Branches, DiffKey},
+    common::{Branches, DiffKey, Log},
     git::Git,
 };
 use std::{collections::HashMap, path::PathBuf};
@@ -11,6 +11,7 @@ pub struct Repo {
     pub dir: PathBuf,
     pub diffs: Diffs,
     pub branches: Branches,
+    pub logs: Vec<Log>,
 }
 
 impl Repo {
@@ -24,11 +25,13 @@ impl Repo {
             })
             .collect::<anyhow::Result<Diffs>>()?;
         let branches = git.branches()?;
+        let logs = git.log()?;
 
         Ok(Self {
             dir,
             diffs,
             branches,
+            logs,
         })
     }
 }

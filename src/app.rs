@@ -346,6 +346,10 @@ impl eframe::App for App {
                                 .wrap_mode(TextWrapMode::Extend),
                         );
                     }
+                } else {
+                    for log in &repo.logs {
+                        ui.add(Label::new(RichText::new(&log.subject).monospace()).extend());
+                    }
                 }
             });
         });
