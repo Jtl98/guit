@@ -34,7 +34,7 @@ impl Git {
     }
 
     pub fn branches(&self) -> anyhow::Result<Branches> {
-        let local_branches = self.branch()?;
+        let local_branches = self.branch_list()?;
         let remote_branches = self.branch_remotes()?;
         let remotes = self.remote()?;
 
@@ -69,6 +69,10 @@ impl Git {
         }
 
         Ok(Branches { current, other })
+    }
+
+    pub fn branch_create<T: AsRef<str>>(&self, name: T) {
+        self.execute_and_log(["branch", name.as_ref()]);
     }
 
     pub fn commit(&self, message: &str) {
@@ -175,7 +179,7 @@ impl Git {
         }
     }
 
-    fn branch(&self) -> anyhow::Result<HashSet<String>> {
+    fn branch_list(&self) -> anyhow::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute_here(["branch"])?;
         Ok(self.split_by_newline(&stdout))
     }

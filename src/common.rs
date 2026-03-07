@@ -24,6 +24,7 @@ pub enum RepoAction {
     AddOrRestore(DiffKey),
     Commit(String),
     Switch(Branch),
+    Create(String),
 }
 
 #[derive(Clone, Eq, Hash, PartialEq)]

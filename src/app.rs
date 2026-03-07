@@ -2,7 +2,7 @@ use crate::{
     common::{
         Action, DiffKey,
         MainAction::{self, Close, Open, OpenRecent},
-        RepoAction::{self, AddOrRestore, Commit, Fetch, Pull, Push, Refresh, Switch},
+        RepoAction::{self, AddOrRestore, Commit, Create, Fetch, Pull, Push, Refresh, Switch},
     },
     config::{Config, RecentRepo},
     git::Git,
@@ -35,6 +35,7 @@ pub struct App {
     repo: Option<Arc<RwLock<Repo>>>,
     selected_key: Option<DiffKey>,
     commit_message: String,
+    branch_name: String,
 }
 
 impl App {
@@ -106,6 +107,10 @@ impl App {
             }),
             Switch(branch) => Box::new(move || {
                 git.switch(&branch);
+                Self::refresh(&git, &repo);
+            }),
+            Create(name) => Box::new(move || {
+                git.branch_create(name);
                 Self::refresh(&git, &repo);
             }),
         };
@@ -204,25 +209,37 @@ impl eframe::App for App {
                     action = Some(Action::Repo(Push));
                 }
 
-                let repo = repo.read().unwrap();
-
-                ComboBox::from_id_salt("branches")
-                    .selected_text(&repo.branches.current)
-                    .show_ui(ui, |ui| {
-                        for branch in &repo.branches.other {
-                            if ui.selectable_label(false, branch.to_string()).clicked() {
-                                action = Some(Action::Repo(Switch(branch.clone())));
-                            }
-                        }
-                    });
-
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    let repo = repo.read().unwrap();
+
                     if ui.button("close").clicked() {
                         action = Some(Action::Main(Close));
                     }
 
-                    if self.is_executing {
-                        ui.spinner();
+                    ComboBox::from_id_salt("branches")
+                        .selected_text(&repo.branches.current)
+                        .show_ui(ui, |ui| {
+                            for branch in &repo.branches.other {
+                                if ui.selectable_label(false, branch.to_string()).clicked() {
+                                    action = Some(Action::Repo(Switch(branch.clone())));
+                                }
+                            }
+                        });
+
+                    let branch_name_provided = !self.branch_name.trim().is_empty();
+                    let button = ui
+                        .add_enabled(!self.is_executing && branch_name_provided, Button::new("+"));
+                    let text = ui.add_enabled(
+                        !self.is_executing,
+                        TextEdit::singleline(&mut self.branch_name),
+                    );
+
+                    if branch_name_provided
+                        && (button.clicked()
+                            || (text.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter))))
+                    {
+                        action = Some(Action::Repo(Create(self.branch_name.clone())));
+                        self.branch_name.clear();
                     }
                 });
             });
@@ -257,6 +274,10 @@ impl eframe::App for App {
                     let dir = repo.dir.to_string_lossy();
 
                     ui.label(dir);
+
+                    if self.is_executing {
+                        ui.spinner();
+                    }
                 });
             });
         });
