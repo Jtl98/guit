@@ -1,4 +1,5 @@
 pub mod bottom;
+pub mod logs;
 pub mod top;
 pub mod welcome;
 

@@ -6,15 +6,13 @@ use crate::{
     },
     config::Config,
     git::Git,
-    log::LOGGER,
-    panels::{Show, bottom::BottomPanel, top::TopPanel, welcome::WelcomePanel},
+    panels::{Show, bottom::BottomPanel, logs::LogsPanel, top::TopPanel, welcome::WelcomePanel},
     repo::Repo,
 };
 use eframe::{
     Frame,
     egui::{
-        Align, CentralPanel, Color32, Context, Label, Layout, RichText, ScrollArea, SidePanel,
-        TextWrapMode, TopBottomPanel, Ui,
+        CentralPanel, Color32, Context, Label, RichText, ScrollArea, SidePanel, TextWrapMode, Ui,
     },
 };
 use log::{error, warn};
@@ -177,36 +175,10 @@ impl eframe::App for App {
                 &mut self.commit_message,
             )
             .show(ctx, &mut action);
-        }
 
-        if self.show_logs {
-            TopBottomPanel::bottom("logs")
-                .resizable(true)
-                .show(ctx, |ui| {
-                    ui.with_layout(Layout::right_to_left(Align::Min), |ui| {
-                        if ui.button("clear").clicked() {
-                            LOGGER.clear();
-                        }
-                    });
-
-                    ScrollArea::both().show(ui, |ui| {
-                        ui.take_available_space();
-
-                        for entry in LOGGER.read().iter() {
-                            let colour = match entry.level {
-                                log::Level::Error => Color32::RED,
-                                log::Level::Warn => Color32::YELLOW,
-                                log::Level::Info => Color32::WHITE,
-                                log::Level::Debug | log::Level::Trace => ui.visuals().text_color(),
-                            };
-
-                            ui.add(
-                                Label::new(RichText::new(entry).monospace().color(colour))
-                                    .wrap_mode(TextWrapMode::Extend),
-                            );
-                        }
-                    });
-                });
+            if self.show_logs {
+                LogsPanel.show(ctx, &mut action);
+            }
         }
 
         SidePanel::left("paths").show(ctx, |ui| {
