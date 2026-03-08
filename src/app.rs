@@ -7,14 +7,14 @@ use crate::{
     config::Config,
     git::Git,
     log::LOGGER,
-    panels::{Show, top::TopPanel, welcome::WelcomePanel},
+    panels::{Show, bottom::BottomPanel, top::TopPanel, welcome::WelcomePanel},
     repo::Repo,
 };
 use eframe::{
     Frame,
     egui::{
-        Align, Button, CentralPanel, Color32, Context, Key, Label, Layout, RichText, ScrollArea,
-        SidePanel, TextEdit, TextWrapMode, TopBottomPanel, Ui,
+        Align, CentralPanel, Color32, Context, Label, Layout, RichText, ScrollArea, SidePanel,
+        TextWrapMode, TopBottomPanel, Ui,
     },
 };
 use log::{error, warn};
@@ -169,44 +169,15 @@ impl eframe::App for App {
             let repo = repo.read().unwrap();
 
             TopPanel::new(&self.is_executing, &repo, &mut self.branch_name).show(ctx, &mut action);
+
+            BottomPanel::new(
+                self.is_executing,
+                &mut self.show_logs,
+                &repo,
+                &mut self.commit_message,
+            )
+            .show(ctx, &mut action);
         }
-
-        TopBottomPanel::bottom("bottom_menu").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                let commit_message_provided = !self.commit_message.trim().is_empty();
-                let text = ui.add_enabled(
-                    !self.is_executing,
-                    TextEdit::singleline(&mut self.commit_message),
-                );
-                let button = ui.add_enabled(
-                    !self.is_executing && commit_message_provided,
-                    Button::new("commit"),
-                );
-
-                if commit_message_provided
-                    && (button.clicked()
-                        || (text.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter))))
-                {
-                    action = Some(Action::Repo(Commit(self.commit_message.clone())));
-                    self.commit_message.clear();
-                }
-
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    if ui.selectable_label(self.show_logs, "logs").clicked() {
-                        self.show_logs = !self.show_logs;
-                    }
-
-                    let repo = repo.read().unwrap();
-                    let dir = repo.dir.to_string_lossy();
-
-                    ui.label(dir);
-
-                    if self.is_executing {
-                        ui.spinner();
-                    }
-                });
-            });
-        });
 
         if self.show_logs {
             TopBottomPanel::bottom("logs")

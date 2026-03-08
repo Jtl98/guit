@@ -1,3 +1,4 @@
+pub mod bottom;
 pub mod top;
 pub mod welcome;
 
