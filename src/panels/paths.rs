@@ -1,4 +1,4 @@
-use eframe::egui::{Context, ScrollArea, SidePanel, Ui};
+use eframe::egui::{Context, Key, ScrollArea, SidePanel, Ui};
 
 use crate::{
     common::{Action, DiffKey, RepoAction::AddOrRestore},
@@ -31,12 +31,19 @@ impl<'a> Show for PathsPanel<'a> {
                         for key in keys {
                             let checked = self.selected_key.as_ref() == Some(key);
                             let response = ui.selectable_label(checked, &key.path);
+                            let key_pressed = ui
+                                .input(|i| i.key_pressed(Key::Enter) || i.key_pressed(Key::Space));
 
-                            if response.double_clicked() {
+                            if response.double_clicked() || (key_pressed && response.has_focus()) {
                                 *action = Some(Action::Repo(AddOrRestore(key.clone())));
                                 *self.selected_key = None;
                             } else if response.clicked() {
-                                *self.selected_key = if checked { None } else { Some(key.clone()) }
+                                *self.selected_key = if checked {
+                                    None
+                                } else {
+                                    response.request_focus();
+                                    Some(key.clone())
+                                }
                             }
                         }
                     });
