@@ -3,6 +3,7 @@ mod common;
 mod config;
 mod git;
 mod log;
+mod panels;
 mod repo;
 
 use crate::app::App;

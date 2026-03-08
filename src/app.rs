@@ -4,16 +4,17 @@ use crate::{
         MainAction::{self, Close, Open, OpenRecent},
         RepoAction::{self, AddOrRestore, Commit, Create, Fetch, Pull, Push, Refresh, Switch},
     },
-    config::{Config, RecentRepo},
+    config::Config,
     git::Git,
     log::LOGGER,
+    panels::{Show, welcome::WelcomePanel},
     repo::Repo,
 };
 use eframe::{
     Frame,
     egui::{
         Align, Button, CentralPanel, Color32, ComboBox, Context, Key, Label, Layout, RichText,
-        ScrollArea, SidePanel, TextEdit, TextWrapMode, TopBottomPanel, Ui, Vec2,
+        ScrollArea, SidePanel, TextEdit, TextWrapMode, TopBottomPanel, Ui,
     },
 };
 use log::{error, warn};
@@ -157,22 +158,7 @@ impl eframe::App for App {
         let mut action = None;
 
         let Some(ref repo) = self.repo else {
-            CentralPanel::default().show(ctx, |ui| {
-                ui.vertical_centered(|ui| {
-                    ui.spacing_mut().button_padding = Vec2::new(32.0, 16.0);
-                    ui.add_space(ui.available_height() / 3.0);
-
-                    if ui.button(RichText::new("open").size(32.0)).clicked() {
-                        action = Some(Action::Main(Open));
-                    }
-
-                    for RecentRepo { path, .. } in self.config.recent_repos() {
-                        if ui.button(path.to_string_lossy()).clicked() {
-                            action = Some(Action::Main(OpenRecent(path.clone())))
-                        }
-                    }
-                });
-            });
+            WelcomePanel::new(&self.config).show(ctx, &mut action);
 
             self.update(action, ctx);
 
