@@ -1,7 +1,7 @@
 use crate::{
     common::{
         Action, DiffKey,
-        FileAction::{self, Close, Open, OpenRecent},
+        FileAction::{self, Close, Init, Open, OpenRecent},
         RepoAction::{self, AddOrRestore, Commit, Create, Fetch, Pull, Push, Refresh, Switch},
     },
     config::Config,
@@ -32,6 +32,7 @@ pub struct App {
     selected_key: Option<DiffKey>,
     commit_message: String,
     branch_name: String,
+    init_name: String,
 }
 
 impl App {
@@ -42,6 +43,7 @@ impl App {
 
         Self {
             config,
+            init_name: "main".to_owned(),
             ..Default::default()
         }
     }
@@ -76,6 +78,18 @@ impl App {
             }
             Close => {
                 self.repo = None;
+            }
+            Init(name) => {
+                let Some(dir) = FileDialog::new().pick_folder() else {
+                    warn!("no folder picked");
+                    return;
+                };
+
+                self.git.init(&name, &dir);
+
+                if let Err(error) = self.open_repo(&dir) {
+                    error!("{}", error);
+                }
             }
         }
     }
@@ -180,7 +194,7 @@ impl eframe::App for App {
                 GitLogs::new(&repo.logs).show(ctx, &mut action);
             }
         } else {
-            WelcomePanel::new(&self.config).show(ctx, &mut action);
+            WelcomePanel::new(&self.config, &mut self.init_name).show(ctx, &mut action);
         }
 
         self.update(action, ctx);

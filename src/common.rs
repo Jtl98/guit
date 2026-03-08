@@ -15,6 +15,7 @@ pub enum FileAction {
     Open,
     OpenRecent(PathBuf),
     Close,
+    Init(String),
 }
 
 pub enum RepoAction {

@@ -28,8 +28,10 @@ impl Git {
 
     pub fn add_or_restore(&self, key: &DiffKey) {
         match key.area {
-            DiffArea::Untracked | DiffArea::Unstaged => self.execute_and_log(["add", &key.path]),
-            DiffArea::Staged => self.execute_and_log(["restore", "--staged", &key.path]),
+            DiffArea::Untracked | DiffArea::Unstaged => {
+                self.execute_and_log_here(["add", &key.path])
+            }
+            DiffArea::Staged => self.execute_and_log_here(["restore", "--staged", &key.path]),
         }
     }
 
@@ -72,11 +74,11 @@ impl Git {
     }
 
     pub fn branch_create(&self, name: &str) {
-        self.execute_and_log(["branch", name]);
+        self.execute_and_log_here(["branch", name]);
     }
 
     pub fn commit(&self, message: &str) {
-        self.execute_and_log(["commit", "-m", message]);
+        self.execute_and_log_here(["commit", "-m", message]);
     }
 
     pub fn diff(&self, DiffKey { path, area }: &DiffKey) -> anyhow::Result<String> {
@@ -120,7 +122,11 @@ impl Git {
     }
 
     pub fn fetch_all(&self) {
-        self.execute_and_log(["fetch", "--all"]);
+        self.execute_and_log_here(["fetch", "--all"]);
+    }
+
+    pub fn init(&self, name: &str, dir: &Path) {
+        self.execute_and_log_in(["init", "-b", name], dir);
     }
 
     pub fn log(&self) -> anyhow::Result<Vec<Log>> {
@@ -152,11 +158,11 @@ impl Git {
     }
 
     pub fn pull(&self) {
-        self.execute_and_log(["pull"]);
+        self.execute_and_log_here(["pull"]);
     }
 
     pub fn push(&self) {
-        self.execute_and_log(["push"]);
+        self.execute_and_log_here(["push"]);
     }
 
     pub fn rev_parse_show_toplevel(&self, dir: &Path) -> anyhow::Result<PathBuf> {
@@ -171,10 +177,10 @@ impl Git {
         let Branch { name, area } = branch;
 
         match area {
-            BranchArea::Local => self.execute_and_log(["switch", name]),
+            BranchArea::Local => self.execute_and_log_here(["switch", name]),
             BranchArea::Remote(remote) => {
                 let start_point = format!("{remote}/{name}");
-                self.execute_and_log(["switch", "--create", name, &start_point])
+                self.execute_and_log_here(["switch", "--create", name, &start_point])
             }
         }
     }
@@ -236,12 +242,12 @@ impl Git {
         self.execute(args, None)
     }
 
-    fn execute_and_log<I, S>(&self, args: I)
+    fn execute_and_log<I, S>(&self, args: I, dir: Option<&Path>)
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        match self.execute_here(args) {
+        match self.execute(args, dir) {
             Ok(Output {
                 status,
                 stdout,
@@ -260,5 +266,21 @@ impl Git {
             }
             Err(error) => error!("{}", error),
         }
+    }
+
+    fn execute_and_log_in<I, S>(&self, args: I, dir: &Path)
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        self.execute_and_log(args, Some(dir));
+    }
+
+    fn execute_and_log_here<I, S>(&self, args: I)
+    where
+        I: IntoIterator<Item = S>,
+        S: AsRef<OsStr>,
+    {
+        self.execute_and_log(args, None);
     }
 }
