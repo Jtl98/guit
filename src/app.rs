@@ -7,14 +7,14 @@ use crate::{
     config::Config,
     git::Git,
     log::LOGGER,
-    panels::{Show, welcome::WelcomePanel},
+    panels::{Show, top::TopPanel, welcome::WelcomePanel},
     repo::Repo,
 };
 use eframe::{
     Frame,
     egui::{
-        Align, Button, CentralPanel, Color32, ComboBox, Context, Key, Label, Layout, RichText,
-        ScrollArea, SidePanel, TextEdit, TextWrapMode, TopBottomPanel, Ui,
+        Align, Button, CentralPanel, Color32, Context, Key, Label, Layout, RichText, ScrollArea,
+        SidePanel, TextEdit, TextWrapMode, TopBottomPanel, Ui,
     },
 };
 use log::{error, warn};
@@ -165,71 +165,11 @@ impl eframe::App for App {
             return;
         };
 
-        TopBottomPanel::top("top_menu").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                if ui
-                    .add_enabled(!self.is_executing, Button::new("refresh"))
-                    .clicked()
-                {
-                    action = Some(Action::Repo(Refresh));
-                }
+        {
+            let repo = repo.read().unwrap();
 
-                if ui
-                    .add_enabled(!self.is_executing, Button::new("fetch"))
-                    .clicked()
-                {
-                    action = Some(Action::Repo(Fetch));
-                }
-
-                if ui
-                    .add_enabled(!self.is_executing, Button::new("pull"))
-                    .clicked()
-                {
-                    action = Some(Action::Repo(Pull));
-                }
-
-                if ui
-                    .add_enabled(!self.is_executing, Button::new("push"))
-                    .clicked()
-                {
-                    action = Some(Action::Repo(Push));
-                }
-
-                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    let repo = repo.read().unwrap();
-
-                    if ui.button("close").clicked() {
-                        action = Some(Action::File(Close));
-                    }
-
-                    ComboBox::from_id_salt("branches")
-                        .selected_text(&repo.branches.current)
-                        .show_ui(ui, |ui| {
-                            for branch in &repo.branches.other {
-                                if ui.selectable_label(false, branch.to_string()).clicked() {
-                                    action = Some(Action::Repo(Switch(branch.clone())));
-                                }
-                            }
-                        });
-
-                    let branch_name_provided = !self.branch_name.trim().is_empty();
-                    let button = ui
-                        .add_enabled(!self.is_executing && branch_name_provided, Button::new("+"));
-                    let text = ui.add_enabled(
-                        !self.is_executing,
-                        TextEdit::singleline(&mut self.branch_name),
-                    );
-
-                    if branch_name_provided
-                        && (button.clicked()
-                            || (text.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter))))
-                    {
-                        action = Some(Action::Repo(Create(self.branch_name.clone())));
-                        self.branch_name.clear();
-                    }
-                });
-            });
-        });
+            TopPanel::new(&self.is_executing, &repo, &mut self.branch_name).show(ctx, &mut action);
+        }
 
         TopBottomPanel::bottom("bottom_menu").show(ctx, |ui| {
             ui.horizontal(|ui| {

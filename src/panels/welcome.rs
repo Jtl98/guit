@@ -19,7 +19,7 @@ impl<'a> WelcomePanel<'a> {
 }
 
 impl<'a> Show for WelcomePanel<'a> {
-    fn show(&self, ctx: &Context, action: &mut Option<Action>) {
+    fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
         CentralPanel::default().show(ctx, |ui| {
             ui.vertical_centered(|ui| {
                 ui.spacing_mut().button_padding = Vec2::new(32.0, 16.0);
