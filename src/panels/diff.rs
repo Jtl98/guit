@@ -2,11 +2,11 @@ use crate::{common::Action, panels::Show};
 use eframe::egui::{CentralPanel, Color32, Context, Label, RichText, ScrollArea, TextWrapMode};
 
 pub struct DiffPanel<'a> {
-    diff: &'a String,
+    diff: &'a str,
 }
 
 impl<'a> DiffPanel<'a> {
-    pub fn new(diff: &'a String) -> Self {
+    pub fn new(diff: &'a str) -> Self {
         Self { diff }
     }
 }
