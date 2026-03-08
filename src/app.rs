@@ -1,7 +1,7 @@
 use crate::{
     common::{
         Action, DiffKey,
-        MainAction::{self, Close, Open, OpenRecent},
+        FileAction::{self, Close, Open, OpenRecent},
         RepoAction::{self, AddOrRestore, Commit, Create, Fetch, Pull, Push, Refresh, Switch},
     },
     config::Config,
@@ -54,7 +54,7 @@ impl App {
     fn update(&mut self, action: Option<Action>, ctx: &Context) {
         if let Some(action) = action {
             match action {
-                Action::Main(action) => self.execute_main_action(action),
+                Action::File(action) => self.execute_file_action(action),
                 Action::Repo(action) => self.execute_repo_action(action, ctx),
             }
         }
@@ -62,7 +62,7 @@ impl App {
         self.is_executing = Arc::strong_count(&self.git) > 1;
     }
 
-    fn execute_main_action(&mut self, action: MainAction) {
+    fn execute_file_action(&mut self, action: FileAction) {
         match action {
             Open => {
                 let Some(dir) = FileDialog::new().pick_folder() else {
@@ -199,7 +199,7 @@ impl eframe::App for App {
                     let repo = repo.read().unwrap();
 
                     if ui.button("close").clicked() {
-                        action = Some(Action::Main(Close));
+                        action = Some(Action::File(Close));
                     }
 
                     ComboBox::from_id_salt("branches")

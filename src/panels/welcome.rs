@@ -1,7 +1,7 @@
 use crate::{
     common::{
         Action,
-        MainAction::{Open, OpenRecent},
+        FileAction::{Open, OpenRecent},
     },
     config::{Config, RecentRepo},
     panels::Show,
@@ -26,12 +26,12 @@ impl<'a> Show for WelcomePanel<'a> {
                 ui.add_space(ui.available_height() / 3.0);
 
                 if ui.button(RichText::new("open").size(32.0)).clicked() {
-                    *action = Some(Action::Main(Open));
+                    *action = Some(Action::File(Open));
                 }
 
                 for RecentRepo { path, .. } in self.config.recent_repos() {
                     if ui.button(path.to_string_lossy()).clicked() {
-                        *action = Some(Action::Main(OpenRecent(path.clone())))
+                        *action = Some(Action::File(OpenRecent(path.clone())))
                     }
                 }
             });

@@ -6,11 +6,11 @@ use std::{
 };
 
 pub enum Action {
-    Main(MainAction),
+    File(FileAction),
     Repo(RepoAction),
 }
 
-pub enum MainAction {
+pub enum FileAction {
     Open,
     OpenRecent(PathBuf),
     Close,
