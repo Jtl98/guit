@@ -169,6 +169,7 @@ impl eframe::App for App {
                 self.is_executing,
                 &mut self.show_logs,
                 &repo,
+                &mut self.selected_key,
                 &mut self.commit_message,
             )
             .show(ctx, &mut action);

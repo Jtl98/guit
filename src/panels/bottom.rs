@@ -1,5 +1,5 @@
 use crate::{
-    common::{Action, RepoAction::Commit},
+    common::{Action, DiffKey, RepoAction::Commit},
     panels::Show,
     repo::Repo,
 };
@@ -9,6 +9,7 @@ pub struct BottomPanel<'a> {
     is_executing: bool,
     show_logs: &'a mut bool,
     repo: &'a Repo,
+    selected_key: &'a mut Option<DiffKey>,
     commit_message: &'a mut String,
 }
 
@@ -17,12 +18,14 @@ impl<'a> BottomPanel<'a> {
         is_executing: bool,
         show_logs: &'a mut bool,
         repo: &'a Repo,
+        selected_key: &'a mut Option<DiffKey>,
         commit_message: &'a mut String,
     ) -> Self {
         Self {
             is_executing,
             show_logs,
             repo,
+            selected_key,
             commit_message,
         }
     }
@@ -47,6 +50,7 @@ impl<'a> Show for BottomPanel<'a> {
                         || (text.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter))))
                 {
                     *action = Some(Action::Repo(Commit(self.commit_message.to_owned())));
+                    *self.selected_key = None;
                     self.commit_message.clear();
                 }
 
