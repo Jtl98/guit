@@ -106,7 +106,7 @@ impl App {
                 Self::refresh(&git, &repo);
             }),
             Create(name) => Box::new(move || {
-                git.branch_create(name);
+                git.branch_create(&name);
                 Self::refresh(&git, &repo);
             }),
         };

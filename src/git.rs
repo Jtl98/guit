@@ -71,8 +71,8 @@ impl Git {
         Ok(Branches { current, other })
     }
 
-    pub fn branch_create<T: AsRef<str>>(&self, name: T) {
-        self.execute_and_log(["branch", name.as_ref()]);
+    pub fn branch_create(&self, name: &str) {
+        self.execute_and_log(["branch", name]);
     }
 
     pub fn commit(&self, message: &str) {
