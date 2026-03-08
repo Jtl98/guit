@@ -6,14 +6,15 @@ use crate::{
     },
     config::Config,
     git::Git,
-    panels::{Show, bottom::BottomPanel, logs::LogsPanel, top::TopPanel, welcome::WelcomePanel},
+    panels::{
+        Show, bottom::BottomPanel, logs::LogsPanel, paths::PathsPanel, top::TopPanel,
+        welcome::WelcomePanel,
+    },
     repo::Repo,
 };
 use eframe::{
     Frame,
-    egui::{
-        CentralPanel, Color32, Context, Label, RichText, ScrollArea, SidePanel, TextWrapMode, Ui,
-    },
+    egui::{CentralPanel, Color32, Context, Label, RichText, ScrollArea, TextWrapMode},
 };
 use log::{error, warn};
 use rfd::FileDialog;
@@ -179,41 +180,9 @@ impl eframe::App for App {
             if self.show_logs {
                 LogsPanel.show(ctx, &mut action);
             }
+
+            PathsPanel::new(&repo, &mut self.selected_key).show(ctx, &mut action);
         }
-
-        SidePanel::left("paths").show(ctx, |ui| {
-            let mut show_keys = |ui: &mut Ui, id, max_height, filter: fn(&&DiffKey) -> bool| {
-                ScrollArea::both()
-                    .id_salt(id)
-                    .max_height(max_height)
-                    .show(ui, |ui| {
-                        ui.take_available_space();
-
-                        let repo = repo.read().unwrap();
-                        let keys = repo.diffs.keys().filter(filter);
-                        for key in keys {
-                            let checked = self.selected_key.as_ref() == Some(key);
-                            let response = ui.selectable_label(checked, &key.path);
-
-                            if response.double_clicked() {
-                                action = Some(Action::Repo(AddOrRestore(key.clone())));
-                                self.selected_key = None;
-                            } else if response.clicked() {
-                                self.selected_key = if checked { None } else { Some(key.clone()) }
-                            }
-                        }
-                    });
-            };
-
-            show_keys(
-                ui,
-                "unstaged",
-                ui.available_height() / 2.0,
-                DiffKey::is_not_staged,
-            );
-            ui.separator();
-            show_keys(ui, "staged", ui.available_height(), DiffKey::is_staged);
-        });
 
         CentralPanel::default().show(ctx, |ui| {
             ScrollArea::both().show(ui, |ui| {
