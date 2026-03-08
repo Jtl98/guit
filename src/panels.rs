@@ -1,5 +1,5 @@
+pub mod app_logs;
 pub mod bottom;
-pub mod logs;
 pub mod paths;
 pub mod top;
 pub mod welcome;

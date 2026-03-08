@@ -3,9 +3,9 @@ use eframe::egui::{
     Align, Color32, Context, Label, Layout, RichText, ScrollArea, TextWrapMode, TopBottomPanel,
 };
 
-pub struct LogsPanel;
+pub struct AppLogsPanel;
 
-impl Show for LogsPanel {
+impl Show for AppLogsPanel {
     fn show(&mut self, ctx: &Context, _action: &mut Option<Action>) {
         TopBottomPanel::bottom("logs")
             .resizable(true)

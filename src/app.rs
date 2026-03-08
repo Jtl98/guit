@@ -7,7 +7,7 @@ use crate::{
     config::Config,
     git::Git,
     panels::{
-        Show, bottom::BottomPanel, logs::LogsPanel, paths::PathsPanel, top::TopPanel,
+        Show, bottom::BottomPanel, app_logs::AppLogsPanel, paths::PathsPanel, top::TopPanel,
         welcome::WelcomePanel,
     },
     repo::Repo,
@@ -178,7 +178,7 @@ impl eframe::App for App {
             .show(ctx, &mut action);
 
             if self.show_logs {
-                LogsPanel.show(ctx, &mut action);
+                AppLogsPanel.show(ctx, &mut action);
             }
 
             PathsPanel::new(&repo, &mut self.selected_key).show(ctx, &mut action);
