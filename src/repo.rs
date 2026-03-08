@@ -30,15 +30,11 @@ impl Repo {
             })
             .collect::<anyhow::Result<Diffs>>()?;
         let branches = git.branches()?;
-        let logs = git
-            .log()?
-            .into_iter()
-            .fold(BTreeMap::new(), |mut map, log| {
-                let date = log.short_date.clone();
-                let logs = map.entry(Reverse(date)).or_insert(Vec::new());
-                logs.push(log);
-                map
-            });
+        let logs = git.log()?.into_iter().fold(Logs::new(), |mut logs, log| {
+            let date = Reverse(log.short_date.clone());
+            logs.entry(date).or_insert(vec![]).push(log);
+            logs
+        });
 
         Ok(Self {
             dir,
