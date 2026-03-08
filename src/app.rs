@@ -152,15 +152,7 @@ impl eframe::App for App {
     fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
         let mut action = None;
 
-        let Some(ref repo) = self.repo else {
-            WelcomePanel::new(&self.config).show(ctx, &mut action);
-
-            self.update(action, ctx);
-
-            return;
-        };
-
-        {
+        if let Some(repo) = &self.repo {
             let repo = repo.read().unwrap();
 
             TopPanel::new(&self.is_executing, &repo, &mut self.branch_name).show(ctx, &mut action);
@@ -187,6 +179,8 @@ impl eframe::App for App {
             } else {
                 GitLogs::new(&repo.logs).show(ctx, &mut action);
             }
+        } else {
+            WelcomePanel::new(&self.config).show(ctx, &mut action);
         }
 
         self.update(action, ctx);
