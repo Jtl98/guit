@@ -1,5 +1,7 @@
 pub mod app_logs;
 pub mod bottom;
+pub mod diff;
+pub mod git_logs;
 pub mod paths;
 pub mod top;
 pub mod welcome;

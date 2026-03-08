@@ -7,19 +7,15 @@ use crate::{
     config::Config,
     git::Git,
     panels::{
-        Show, bottom::BottomPanel, app_logs::AppLogsPanel, paths::PathsPanel, top::TopPanel,
-        welcome::WelcomePanel,
+        Show, app_logs::AppLogsPanel, bottom::BottomPanel, diff::DiffPanel, git_logs::GitLogs,
+        paths::PathsPanel, top::TopPanel, welcome::WelcomePanel,
     },
     repo::Repo,
 };
-use eframe::{
-    Frame,
-    egui::{CentralPanel, Color32, Context, Label, RichText, ScrollArea, TextWrapMode},
-};
+use eframe::{Frame, egui::Context};
 use log::{error, warn};
 use rfd::FileDialog;
 use std::{
-    cmp::Reverse,
     env,
     path::Path,
     sync::{Arc, RwLock},
@@ -182,52 +178,15 @@ impl eframe::App for App {
             }
 
             PathsPanel::new(&repo, &mut self.selected_key).show(ctx, &mut action);
-        }
 
-        CentralPanel::default().show(ctx, |ui| {
-            ScrollArea::both().show(ui, |ui| {
-                ui.take_available_space();
-
-                let repo = repo.read().unwrap();
-                if let Some(selected_key) = &self.selected_key
-                    && let Some(diff) = repo.diffs.get(selected_key)
-                {
-                    for line in diff.lines() {
-                        let colour = if line.starts_with('+') {
-                            Color32::GREEN
-                        } else if line.starts_with('-') {
-                            Color32::RED
-                        } else {
-                            ui.visuals().text_color()
-                        };
-
-                        ui.add(
-                            Label::new(RichText::new(line).monospace().color(colour))
-                                .wrap_mode(TextWrapMode::Extend),
-                        );
-                    }
-                } else {
-                    for (Reverse(date), logs) in &repo.logs {
-                        ui.add(Label::new(RichText::new(date).monospace().strong()).extend());
-
-                        for log in logs {
-                            let formatted = format!("[{}] {}", log.short_hash, log.subject);
-
-                            ui.add(Label::new(RichText::new(formatted).monospace()).extend())
-                                .on_hover_ui(|ui| {
-                                    ui.style_mut().interaction.selectable_labels = true;
-
-                                    let tooltip = format!(
-                                        "author: {}\ndate: {}\nhash: {}",
-                                        log.author, log.long_date, log.long_hash
-                                    );
-                                    ui.label(tooltip);
-                                });
-                        }
-                    }
+            if let Some(selected_key) = &self.selected_key {
+                if let Some(diff) = repo.diffs.get(selected_key) {
+                    DiffPanel::new(diff).show(ctx, &mut action);
                 }
-            });
-        });
+            } else {
+                GitLogs::new(&repo.logs).show(ctx, &mut action);
+            }
+        }
 
         self.update(action, ctx);
     }

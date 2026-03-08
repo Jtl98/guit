@@ -1,15 +1,10 @@
 use crate::{
-    common::{Branches, DiffKey, Log},
+    common::{Branches, DiffKey, Logs},
     git::Git,
 };
-use std::{
-    cmp::Reverse,
-    collections::{BTreeMap, HashMap},
-    path::PathBuf,
-};
+use std::{cmp::Reverse, collections::HashMap, path::PathBuf};
 
 type Diffs = HashMap<DiffKey, String>;
-type Logs = BTreeMap<Reverse<String>, Vec<Log>>;
 
 #[derive(Default)]
 pub struct Repo {

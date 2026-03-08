@@ -1,5 +1,6 @@
 use std::{
-    collections::HashSet,
+    cmp::Reverse,
+    collections::{BTreeMap, HashSet},
     fmt::{self, Display, Formatter},
     hash::{Hash, Hasher},
     path::PathBuf,
@@ -90,6 +91,8 @@ pub enum BranchArea {
     Local,
     Remote(String),
 }
+
+pub type Logs = BTreeMap<Reverse<String>, Vec<Log>>;
 
 pub struct Log {
     pub author: String,
