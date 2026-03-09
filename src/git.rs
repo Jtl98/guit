@@ -125,8 +125,8 @@ impl Git {
         self.execute_and_log_here(["fetch", "--all"]);
     }
 
-    pub fn init(&self, name: &str, dir: &Path) {
-        self.execute_and_log_in(["init", "-b", name], dir);
+    pub fn init(&self, dir: &Path) {
+        self.execute_and_log_in(["init", "-b", "main"], dir);
     }
 
     pub fn log(&self) -> anyhow::Result<Vec<Log>> {
