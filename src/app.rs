@@ -172,7 +172,7 @@ impl eframe::App for App {
             BottomPanel::new(
                 self.is_executing,
                 &mut self.show_logs,
-                &repo,
+                &repo.dir,
                 &mut self.selected_key,
                 &mut self.commit_message,
             )

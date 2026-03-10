@@ -1,14 +1,14 @@
 use crate::{
     common::{Action, DiffKey, RepoAction::Commit},
     panels::Show,
-    repo::Repo,
 };
 use eframe::egui::{Align, Button, Context, Key, Layout, TextEdit, TopBottomPanel};
+use std::path::Path;
 
 pub struct BottomPanel<'a> {
     is_executing: bool,
     show_logs: &'a mut bool,
-    repo: &'a Repo,
+    dir: &'a Path,
     selected_key: &'a mut Option<DiffKey>,
     commit_message: &'a mut String,
 }
@@ -17,14 +17,14 @@ impl<'a> BottomPanel<'a> {
     pub fn new(
         is_executing: bool,
         show_logs: &'a mut bool,
-        repo: &'a Repo,
+        dir: &'a Path,
         selected_key: &'a mut Option<DiffKey>,
         commit_message: &'a mut String,
     ) -> Self {
         Self {
             is_executing,
             show_logs,
-            repo,
+            dir,
             selected_key,
             commit_message,
         }
@@ -59,9 +59,7 @@ impl<'a> Show for BottomPanel<'a> {
                         *self.show_logs = !*self.show_logs;
                     }
 
-                    let dir = self.repo.dir.to_string_lossy();
-
-                    ui.label(dir);
+                    ui.label(self.dir.to_string_lossy());
 
                     if self.is_executing {
                         ui.spinner();
