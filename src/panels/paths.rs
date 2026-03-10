@@ -1,19 +1,20 @@
+use crate::{
+    common::{Action, DiffKey, Diffs, RepoAction::AddOrRestore},
+    panels::Show,
+};
 use eframe::egui::{Context, Key, ScrollArea, SidePanel, Ui};
 
-use crate::{
-    common::{Action, DiffKey, RepoAction::AddOrRestore},
-    panels::Show,
-    repo::Repo,
-};
-
 pub struct PathsPanel<'a> {
-    repo: &'a Repo,
+    diffs: &'a Diffs,
     selected_key: &'a mut Option<DiffKey>,
 }
 
 impl<'a> PathsPanel<'a> {
-    pub fn new(repo: &'a Repo, selected_key: &'a mut Option<DiffKey>) -> Self {
-        Self { repo, selected_key }
+    pub fn new(diffs: &'a Diffs, selected_key: &'a mut Option<DiffKey>) -> Self {
+        Self {
+            diffs,
+            selected_key,
+        }
     }
 }
 
@@ -27,7 +28,7 @@ impl<'a> Show for PathsPanel<'a> {
                     .show(ui, |ui| {
                         ui.take_available_space();
 
-                        let keys = self.repo.diffs.keys().filter(filter);
+                        let keys = self.diffs.keys().filter(filter);
                         for key in keys {
                             let checked = self.selected_key.as_ref() == Some(key);
                             let response = ui.selectable_label(checked, &key.path);

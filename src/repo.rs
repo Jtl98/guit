@@ -1,10 +1,8 @@
 use crate::{
-    common::{Branches, DiffKey, Logs},
+    common::{Branches, Diffs, Logs},
     git::Git,
 };
-use std::{cmp::Reverse, collections::BTreeMap, path::PathBuf};
-
-type Diffs = BTreeMap<DiffKey, String>;
+use std::{cmp::Reverse, path::PathBuf};
 
 #[derive(Default)]
 pub struct Repo {

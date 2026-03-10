@@ -182,7 +182,7 @@ impl eframe::App for App {
                 AppLogsPanel.show(ctx, &mut action);
             }
 
-            PathsPanel::new(&repo, &mut self.selected_key).show(ctx, &mut action);
+            PathsPanel::new(&repo.diffs, &mut self.selected_key).show(ctx, &mut action);
 
             if let Some(selected_key) = &self.selected_key {
                 if let Some(diff) = repo.diffs.get(selected_key) {

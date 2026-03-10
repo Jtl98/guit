@@ -93,6 +93,8 @@ pub enum BranchArea {
     Remote(String),
 }
 
+pub type Diffs = BTreeMap<DiffKey, String>;
+
 pub type Logs = BTreeMap<Reverse<String>, Vec<Log>>;
 
 pub struct Log {
