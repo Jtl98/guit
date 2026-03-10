@@ -59,21 +59,6 @@ impl App {
 
     fn execute_file_action(&mut self, action: FileAction) {
         match action {
-            Open => {
-                let Some(dir) = FileDialog::new().pick_folder() else {
-                    warn!("no folder picked");
-                    return;
-                };
-
-                if let Err(error) = self.open_repo(&dir) {
-                    error!("{}", error);
-                }
-            }
-            OpenRecent(path) => {
-                if let Err(error) = self.open_repo(&path) {
-                    error!("{}", error);
-                }
-            }
             Close => {
                 self.repo = None;
             }
@@ -86,6 +71,21 @@ impl App {
                 self.git.init(&dir);
 
                 if let Err(error) = self.open_repo(&dir) {
+                    error!("{}", error);
+                }
+            }
+            Open => {
+                let Some(dir) = FileDialog::new().pick_folder() else {
+                    warn!("no folder picked");
+                    return;
+                };
+
+                if let Err(error) = self.open_repo(&dir) {
+                    error!("{}", error);
+                }
+            }
+            OpenRecent(path) => {
+                if let Err(error) = self.open_repo(&path) {
                     error!("{}", error);
                 }
             }

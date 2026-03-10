@@ -12,10 +12,10 @@ pub enum Action {
 }
 
 pub enum FileAction {
-    Open,
-    OpenRecent(PathBuf),
     Close,
     Init,
+    Open,
+    OpenRecent(PathBuf),
 }
 
 pub enum RepoAction {
