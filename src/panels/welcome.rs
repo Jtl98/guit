@@ -6,7 +6,7 @@ use crate::{
     config::{Config, RecentRepo},
     panels::Show,
 };
-use eframe::egui::{CentralPanel, Context, RichText, Vec2};
+use eframe::egui::{Button, CentralPanel, Context, RichText, ScrollArea, TextWrapMode, Vec2};
 
 pub struct WelcomePanel<'a> {
     config: &'a Config,
@@ -28,27 +28,36 @@ impl<'a> Show for WelcomePanel<'a> {
                 c2.label(RichText::new("file").size(32.0));
                 c2.add_space(16.0);
 
-                if c2.button(RichText::new("init").size(16.0)).clicked() {
-                    *action = Some(Action::File(Init));
-                }
+                ScrollArea::both().id_salt("file").show(c2, |c2| {
+                    if c2.button(RichText::new("init").size(16.0)).clicked() {
+                        *action = Some(Action::File(Init));
+                    }
 
-                c2.add_space(16.0);
+                    c2.add_space(16.0);
 
-                if c2.button(RichText::new("open").size(16.0)).clicked() {
-                    *action = Some(Action::File(Open));
-                }
+                    if c2.button(RichText::new("open").size(16.0)).clicked() {
+                        *action = Some(Action::File(Open));
+                    }
+                });
 
                 c3.label(RichText::new("recent").size(32.0));
                 c3.add_space(16.0);
 
-                for RecentRepo { path, .. } in self.config.recent_repos() {
-                    let text = RichText::new(path.to_string_lossy()).size(16.0);
-                    if c3.button(text).clicked() {
-                        *action = Some(Action::File(OpenRecent(path.clone())))
-                    }
+                ScrollArea::both()
+                    .id_salt("recent")
+                    .stick_to_right(true)
+                    .show(c3, |c3| {
+                        for RecentRepo { path, .. } in self.config.recent_repos() {
+                            let text = RichText::new(path.to_string_lossy()).size(16.0);
+                            let button = Button::new(text).wrap_mode(TextWrapMode::Extend);
 
-                    c3.add_space(16.0);
-                }
+                            if c3.add(button).clicked() {
+                                *action = Some(Action::File(OpenRecent(path.clone())))
+                            }
+
+                            c3.add_space(16.0);
+                        }
+                    });
             });
         });
     }
