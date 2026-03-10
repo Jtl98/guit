@@ -1,25 +1,28 @@
 use crate::{
     common::{
-        Action,
+        Action, Branches,
         FileAction::Close,
         RepoAction::{Create, Fetch, Pull, Push, Refresh, Switch},
     },
     panels::Show,
-    repo::Repo,
 };
 use eframe::egui::{Align, Button, ComboBox, Context, Key, Layout, TextEdit, TopBottomPanel};
 
 pub struct TopPanel<'a> {
     is_executing: &'a bool,
-    repo: &'a Repo,
+    branches: &'a Branches,
     branch_name: &'a mut String,
 }
 
 impl<'a> TopPanel<'a> {
-    pub fn new(is_executing: &'a bool, repo: &'a Repo, branch_name: &'a mut String) -> Self {
+    pub fn new(
+        is_executing: &'a bool,
+        branches: &'a Branches,
+        branch_name: &'a mut String,
+    ) -> Self {
         Self {
             is_executing,
-            repo,
+            branches,
             branch_name,
         }
     }
@@ -63,9 +66,9 @@ impl<'a> Show for TopPanel<'a> {
                     }
 
                     ComboBox::from_id_salt("branches")
-                        .selected_text(&self.repo.branches.current)
+                        .selected_text(&self.branches.current)
                         .show_ui(ui, |ui| {
-                            for branch in &self.repo.branches.other {
+                            for branch in &self.branches.other {
                                 if ui.selectable_label(false, branch.to_string()).clicked() {
                                     *action = Some(Action::Repo(Switch(branch.clone())));
                                 }

@@ -167,7 +167,8 @@ impl eframe::App for App {
         if let Some(repo) = &self.repo {
             let repo = repo.read().unwrap();
 
-            TopPanel::new(&self.is_executing, &repo, &mut self.branch_name).show(ctx, &mut action);
+            TopPanel::new(&self.is_executing, &repo.branches, &mut self.branch_name)
+                .show(ctx, &mut action);
 
             BottomPanel::new(
                 self.is_executing,
