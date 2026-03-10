@@ -21,31 +21,33 @@ impl<'a> WelcomePanel<'a> {
 impl<'a> Show for WelcomePanel<'a> {
     fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
         CentralPanel::default().show(ctx, |ui| {
-            ui.vertical_centered(|ui| {
-                ui.add_space(32.0);
-                ui.spacing_mut().button_padding = Vec2::new(16.0, 8.0);
+            ui.spacing_mut().button_padding = Vec2::new(16.0, 8.0);
+            ui.add_space(32.0);
 
-                if ui.button(RichText::new("init").size(32.0)).clicked() {
+            ui.columns_const(|[_, c2, c3, _]| {
+                c2.label(RichText::new("file").size(32.0));
+                c2.add_space(16.0);
+
+                if c2.button(RichText::new("init").size(16.0)).clicked() {
                     *action = Some(Action::File(Init));
                 }
 
-                ui.add_space(16.0);
+                c2.add_space(16.0);
 
-                if ui.button(RichText::new("open").size(32.0)).clicked() {
+                if c2.button(RichText::new("open").size(16.0)).clicked() {
                     *action = Some(Action::File(Open));
                 }
 
-                ui.add_space(32.0);
-                ui.spacing_mut().button_padding = Vec2::new(8.0, 4.0);
+                c3.label(RichText::new("recent").size(32.0));
+                c3.add_space(16.0);
 
-                ui.label(RichText::new("recent").size(32.0));
                 for RecentRepo { path, .. } in self.config.recent_repos() {
-                    ui.add_space(8.0);
-
                     let text = RichText::new(path.to_string_lossy()).size(16.0);
-                    if ui.button(text).clicked() {
+                    if c3.button(text).clicked() {
                         *action = Some(Action::File(OpenRecent(path.clone())))
                     }
+
+                    c3.add_space(16.0);
                 }
             });
         });
