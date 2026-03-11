@@ -141,11 +141,11 @@ impl App {
 
     fn open_repo(&mut self, dir: &Path) -> anyhow::Result<()> {
         let dir = self.git.rev_parse_show_toplevel(dir)?;
-        let repo = Repo::new(&self.git, dir.clone())?;
         env::set_current_dir(&dir)?;
 
-        self.config.add_repo(dir);
+        let repo = Repo::new(&self.git, dir.clone())?;
         self.repo = Some(Arc::new(RwLock::new(repo)));
+        self.config.add_repo(dir);
         self.config.save()?;
 
         Ok(())
