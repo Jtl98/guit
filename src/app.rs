@@ -61,6 +61,7 @@ impl App {
         match action {
             Close => {
                 self.repo = None;
+                self.selected_key = None;
             }
             Init => {
                 let Some(dir) = FileDialog::new().pick_folder() else {
