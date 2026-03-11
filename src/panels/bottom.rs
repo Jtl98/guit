@@ -10,7 +10,7 @@ pub struct BottomPanel<'a> {
     show_logs: &'a mut bool,
     dir: &'a Path,
     selected_key: &'a mut Option<DiffKey>,
-    commit_message: &'a mut String,
+    commit_message: &'a mut Option<String>,
 }
 
 impl<'a> BottomPanel<'a> {
@@ -19,7 +19,7 @@ impl<'a> BottomPanel<'a> {
         show_logs: &'a mut bool,
         dir: &'a Path,
         selected_key: &'a mut Option<DiffKey>,
-        commit_message: &'a mut String,
+        commit_message: &'a mut Option<String>,
     ) -> Self {
         Self {
             is_executing,
@@ -35,23 +35,21 @@ impl<'a> Show for BottomPanel<'a> {
     fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
         TopBottomPanel::bottom("bottom").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                let commit_message_provided = !self.commit_message.trim().is_empty();
-                let text = ui.add_enabled(
-                    !self.is_executing,
-                    TextEdit::singleline(self.commit_message),
-                );
+                let commit_message = self.commit_message.get_or_insert_default();
+                let commit_message_provided = !commit_message.trim().is_empty();
+                let text = ui.add_enabled(!self.is_executing, TextEdit::singleline(commit_message));
                 let button = ui.add_enabled(
                     !self.is_executing && commit_message_provided,
                     Button::new("commit"),
                 );
+                let key_pressed = text.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
 
                 if commit_message_provided
-                    && (button.clicked()
-                        || (text.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter))))
+                    && (button.clicked() || key_pressed)
+                    && let Some(commit_message) = self.commit_message.take()
                 {
-                    *action = Some(Action::Repo(Commit(self.commit_message.to_owned())));
+                    *action = Some(Action::Repo(Commit(commit_message)));
                     *self.selected_key = None;
-                    self.commit_message.clear();
                 }
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
