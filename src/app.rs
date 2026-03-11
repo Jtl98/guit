@@ -31,7 +31,7 @@ pub struct App {
     repo: Option<Arc<RwLock<Repo>>>,
     selected_key: Option<DiffKey>,
     commit_message: Option<String>,
-    branch_name: String,
+    branch_name: Option<String>,
 }
 
 impl App {
@@ -63,6 +63,7 @@ impl App {
                 self.repo = None;
                 self.selected_key = None;
                 self.commit_message = None;
+                self.branch_name = None;
             }
             Init => {
                 let Some(dir) = FileDialog::new().pick_folder() else {
