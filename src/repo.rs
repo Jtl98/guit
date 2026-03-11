@@ -25,7 +25,7 @@ impl Repo {
         let branches = git.branches()?;
         let logs = git.log()?.into_iter().fold(Logs::new(), |mut logs, log| {
             let date = Reverse(log.short_date.clone());
-            logs.entry(date).or_insert(vec![]).push(log);
+            logs.entry(date).or_insert_with(Vec::new).push(log);
             logs
         });
 
