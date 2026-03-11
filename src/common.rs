@@ -1,8 +1,7 @@
 use std::{
-    cmp::Reverse,
-    collections::{BTreeMap, HashSet},
+    cmp::{Ordering, Reverse},
+    collections::{BTreeMap, BTreeSet},
     fmt::{self, Display, Formatter},
-    hash::{Hash, Hasher},
     path::PathBuf,
 };
 
@@ -55,7 +54,7 @@ pub enum DiffArea {
 #[derive(Default)]
 pub struct Branches {
     pub current: String,
-    pub other: HashSet<Branch>,
+    pub other: BTreeSet<Branch>,
 }
 
 #[derive(Clone, Eq)]
@@ -75,9 +74,9 @@ impl Display for Branch {
     }
 }
 
-impl Hash for Branch {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state);
+impl Ord for Branch {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.name.cmp(&other.name)
     }
 }
 
@@ -87,7 +86,13 @@ impl PartialEq for Branch {
     }
 }
 
-#[derive(Clone, Eq, Hash, PartialEq)]
+impl PartialOrd for Branch {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+#[derive(Clone, Eq, PartialEq)]
 pub enum BranchArea {
     Local,
     Remote(String),

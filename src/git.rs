@@ -1,7 +1,7 @@
 use crate::common::{Branch, BranchArea, Branches, DiffArea, DiffKey, Log};
 use log::{error, info};
 use std::{
-    collections::HashSet,
+    collections::{BTreeSet, HashSet},
     ffi::OsStr,
     fs,
     path::{Path, PathBuf},
@@ -41,7 +41,7 @@ impl Git {
         let remotes = self.remote()?;
 
         let mut current = String::new();
-        let mut other = HashSet::new();
+        let mut other = BTreeSet::new();
 
         for branch in &local_branches {
             let trimmed = branch[2..].to_owned();
