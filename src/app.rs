@@ -2,7 +2,9 @@ use crate::{
     common::{
         Action, DiffKey,
         FileAction::{self, Close, Init, Open, OpenRecent},
-        RepoAction::{self, AddOrRestore, Commit, Create, Fetch, Pull, Push, Refresh, Switch},
+        RepoAction::{
+            self, AddOrRestore, Commit, Create, Fetch, LoadLogs, Pull, Push, Refresh, Switch,
+        },
     },
     config::Config,
     git::Git,
@@ -32,6 +34,7 @@ pub struct App {
     selected_key: Option<DiffKey>,
     commit_message: Option<String>,
     branch_name: Option<String>,
+    logs_scroll_threshold: f32,
 }
 
 impl App {
@@ -64,6 +67,7 @@ impl App {
                 self.selected_key = None;
                 self.commit_message = None;
                 self.branch_name = None;
+                self.logs_scroll_threshold = 0.0;
             }
             Init => {
                 let Some(dir) = FileDialog::new().pick_folder() else {
@@ -123,6 +127,11 @@ impl App {
             Create(name) => Box::new(move || {
                 git.branch_create(&name);
                 Self::refresh(&git, &repo);
+            }),
+            LoadLogs => Box::new(move || {
+                if let Err(error) = repo.write().unwrap().load_logs(&git) {
+                    error!("{}", error);
+                }
             }),
         };
 
@@ -193,7 +202,7 @@ impl eframe::App for App {
                     DiffPanel::new(diff).show(ctx, &mut action);
                 }
             } else {
-                GitLogs::new(&repo.logs).show(ctx, &mut action);
+                GitLogs::new(&repo.logs, &mut self.logs_scroll_threshold).show(ctx, &mut action);
             }
         } else {
             WelcomePanel::new(&self.config).show(ctx, &mut action);

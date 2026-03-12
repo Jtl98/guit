@@ -12,6 +12,7 @@ use std::{
 pub struct Git;
 
 impl Git {
+    pub const LOG_MAX_COUNT: usize = 100;
     const LOG_FORMAT: &str = concat!(
         "--format=%an",
         '\x1f',
@@ -129,8 +130,15 @@ impl Git {
         self.execute_and_log_in(["init", "-b", "main"], dir);
     }
 
-    pub fn log(&self) -> anyhow::Result<Vec<Log>> {
-        let Output { stdout, .. } = self.execute_here(["log", Self::LOG_FORMAT])?;
+    pub fn log(&self, skip: usize) -> anyhow::Result<Vec<Log>> {
+        let Output { stdout, .. } = self.execute_here([
+            "log",
+            "--max-count",
+            &Self::LOG_MAX_COUNT.to_string(),
+            "--skip",
+            &skip.to_string(),
+            Self::LOG_FORMAT,
+        ])?;
         let logs = self
             .split_by_newline_vec(&stdout)
             .into_iter()

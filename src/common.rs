@@ -26,6 +26,7 @@ pub enum RepoAction {
     Commit(String),
     Switch(Branch),
     Create(String),
+    LoadLogs,
 }
 
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
