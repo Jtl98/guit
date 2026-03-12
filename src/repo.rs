@@ -56,6 +56,6 @@ impl Repo {
 
     fn add_log(logs: &mut Logs, log: Log) {
         let date = Reverse(log.short_date.clone());
-        logs.entry(date).or_insert_with(Vec::new).push(log);
+        logs.entry(date).or_default().push(log);
     }
 }
