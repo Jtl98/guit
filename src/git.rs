@@ -37,7 +37,7 @@ impl Git {
     }
 
     pub fn branches(&self) -> anyhow::Result<Branches> {
-        let local_branches = self.branch_list()?;
+        let local_branches = self.branch()?;
         let remote_branches = self.branch_remotes()?;
         let remotes = self.remote()?;
 
@@ -192,7 +192,7 @@ impl Git {
         }
     }
 
-    fn branch_list(&self) -> anyhow::Result<HashSet<String>> {
+    fn branch(&self) -> anyhow::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute_here(["branch"])?;
         Ok(common::split_by_newline(&stdout))
     }
