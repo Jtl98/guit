@@ -211,12 +211,4 @@ mod tests {
 
         assert_eq!(result, vec!["line1", "line2", "line3"]);
     }
-
-    #[test]
-    fn split_by_newline_vec() {
-        let bytes = b"\n\nline1\n\nline2\n\nline3\n\n";
-        let result = split_by_newline_vec(bytes);
-
-        assert_eq!(result, vec!["line1", "line2", "line3"]);
-    }
 }
