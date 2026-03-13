@@ -3,10 +3,10 @@ use crate::{
     panels::Show,
 };
 use eframe::egui::{
-    CentralPanel, Context, Label, RichText, ScrollArea,
+    CentralPanel, Context, Label, RichText, ScrollArea, TextStyle,
     scroll_area::{ScrollAreaOutput, State},
 };
-use std::cmp::Reverse;
+use std::{cmp::Reverse, ops::Range};
 
 pub struct GitLogs<'a> {
     dated_logs: &'a DatedLogs,
@@ -27,28 +27,49 @@ impl<'a> GitLogs<'a> {
 impl<'a> Show for GitLogs<'a> {
     fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
         CentralPanel::default().show(ctx, |ui| {
-            let output = ScrollArea::both().show(ui, |ui| {
-                ui.take_available_space();
+            let row_height = ui.text_style_height(&TextStyle::Monospace);
+            let total_dates = self.dated_logs.len();
+            let total_logs = self.dated_logs.values().map(Vec::len).sum::<usize>();
 
-                for (Reverse(date), logs) in self.dated_logs {
-                    ui.add(Label::new(RichText::new(date).monospace().strong()).extend());
+            let output = ScrollArea::both().show_rows(
+                ui,
+                row_height,
+                total_dates + total_logs,
+                |ui, Range { start, end }| {
+                    ui.take_available_space();
 
-                    for log in logs {
-                        let formatted = format!("[{}] {}", log.short_hash, log.subject);
+                    let mut current_row = 0;
+                    for (Reverse(date), logs) in self.dated_logs {
+                        if current_row >= end {
+                            break;
+                        } else if current_row >= start {
+                            ui.add(Label::new(RichText::new(date).monospace().strong()).extend());
+                        }
 
-                        ui.add(Label::new(RichText::new(formatted).monospace()).extend())
-                            .on_hover_ui(|ui| {
-                                ui.style_mut().interaction.selectable_labels = true;
+                        current_row += 1;
+                        for log in logs {
+                            if current_row >= end {
+                                break;
+                            } else if current_row >= start {
+                                let formatted = format!("[{}] {}", log.short_hash, log.subject);
 
-                                let tooltip = format!(
-                                    "author: {}\ndate: {}\nhash: {}",
-                                    log.author, log.long_date, log.long_hash
-                                );
-                                ui.label(tooltip);
-                            });
+                                ui.add(Label::new(RichText::new(formatted).monospace()).extend())
+                                    .on_hover_ui(|ui| {
+                                        ui.style_mut().interaction.selectable_labels = true;
+
+                                        let tooltip = format!(
+                                            "author: {}\ndate: {}\nhash: {}",
+                                            log.author, log.long_date, log.long_hash
+                                        );
+                                        ui.label(tooltip);
+                                    });
+                            }
+
+                            current_row += 1;
+                        }
                     }
-                }
-            });
+                },
+            );
 
             let ScrollAreaOutput {
                 content_size,
