@@ -1,3 +1,4 @@
+use crate::config::RecentRepo;
 use std::{
     cmp::{Ordering, Reverse},
     collections::{BTreeMap, BTreeSet},
@@ -15,6 +16,7 @@ pub enum FileAction {
     Init,
     Open,
     OpenRecent(PathBuf),
+    RemoveRecent(RecentRepo),
 }
 
 pub enum RepoAction {

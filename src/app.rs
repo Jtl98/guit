@@ -1,7 +1,7 @@
 use crate::{
     common::{
         Action, DiffKey,
-        FileAction::{self, Close, Init, Open, OpenRecent},
+        FileAction::{self, Close, Init, Open, OpenRecent, RemoveRecent},
         RepoAction::{
             self, AddOrRestore, Commit, Create, Fetch, LoadLogs, Pull, Push, Refresh, Switch,
         },
@@ -93,6 +93,12 @@ impl App {
             }
             OpenRecent(path) => {
                 if let Err(error) = self.open_repo(&path) {
+                    error!("{}", error);
+                }
+            }
+            RemoveRecent(repo) => {
+                self.config.remove_repo(&repo);
+                if let Err(error) = self.config.save() {
                     error!("{}", error);
                 }
             }

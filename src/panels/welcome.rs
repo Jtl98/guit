@@ -1,9 +1,9 @@
 use crate::{
     common::{
         Action,
-        FileAction::{Init, Open, OpenRecent},
+        FileAction::{Init, Open, OpenRecent, RemoveRecent},
     },
-    config::{Config, RecentRepo},
+    config::Config,
     panels::Show,
 };
 use eframe::egui::{Button, CentralPanel, Context, RichText, ScrollArea, TextWrapMode, Vec2};
@@ -43,21 +43,26 @@ impl<'a> Show for WelcomePanel<'a> {
                 c3.label(RichText::new("recent").size(32.0));
                 c3.add_space(16.0);
 
-                ScrollArea::both()
-                    .id_salt("recent")
-                    .stick_to_right(true)
-                    .show(c3, |c3| {
-                        for RecentRepo { path, .. } in self.config.recent_repos() {
-                            let text = RichText::new(path.to_string_lossy()).size(16.0);
-                            let button = Button::new(text).wrap_mode(TextWrapMode::Extend);
-
-                            if c3.add(button).clicked() {
-                                *action = Some(Action::File(OpenRecent(path.clone())))
+                ScrollArea::both().id_salt("recent").show(c3, |c3| {
+                    for repo in self.config.recent_repos() {
+                        c3.horizontal(|c3| {
+                            let remove_text = RichText::new("x").size(16.0);
+                            let remove_button = Button::new(remove_text);
+                            if c3.add(remove_button).clicked() {
+                                *action = Some(Action::File(RemoveRecent(repo.clone())));
                             }
 
-                            c3.add_space(16.0);
-                        }
-                    });
+                            let open_text = RichText::new(repo.path.to_string_lossy()).size(16.0);
+                            let open_button =
+                                Button::new(open_text).wrap_mode(TextWrapMode::Extend);
+                            if c3.add_sized(c3.available_size(), open_button).clicked() {
+                                *action = Some(Action::File(OpenRecent(repo.path.clone())));
+                            }
+                        });
+
+                        c3.add_space(16.0);
+                    }
+                });
             });
         });
     }

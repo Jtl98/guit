@@ -37,6 +37,10 @@ impl Config {
         self.repos.replace(repo);
     }
 
+    pub fn remove_repo(&mut self, repo: &RecentRepo) {
+        self.repos.remove(repo);
+    }
+
     pub fn recent_repos(&self) -> Vec<&RecentRepo> {
         let mut repos: Vec<_> = self.repos.iter().collect();
         repos.sort_by(|a, b| b.opened.cmp(&a.opened));
@@ -45,21 +49,21 @@ impl Config {
     }
 
     pub fn save(&self) -> anyhow::Result<()> {
-        let file = self.open_file()?;
+        let file = self.open_file(true)?;
         serde_json::to_writer(file, &self.repos)?;
         Ok(())
     }
 
     fn load(&mut self) -> anyhow::Result<()> {
-        let file = self.open_file()?;
+        let file = self.open_file(false)?;
         self.repos = serde_json::from_reader(file)?;
         Ok(())
     }
 
-    fn open_file(&self) -> anyhow::Result<File> {
+    fn open_file(&self, truncate: bool) -> anyhow::Result<File> {
         let file = File::options()
             .create(true)
-            .truncate(false)
+            .truncate(truncate)
             .write(true)
             .read(true)
             .open(&self.path)?;
@@ -68,7 +72,7 @@ impl Config {
     }
 }
 
-#[derive(Deserialize, Debug, Eq, Serialize)]
+#[derive(Clone, Deserialize, Debug, Eq, Serialize)]
 pub struct RecentRepo {
     pub path: PathBuf,
     opened: u64,
