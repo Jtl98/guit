@@ -1,4 +1,4 @@
-use crate::common::{Branch, BranchArea, Branches, DiffArea, DiffKey, Log};
+use crate::common::{self, Branch, BranchArea, Branches, DiffArea, DiffKey, Log};
 use log::{error, info};
 use std::{
     collections::{BTreeSet, HashSet},
@@ -101,7 +101,7 @@ impl Git {
 
     pub fn diff_name_only(&self) -> anyhow::Result<Vec<DiffKey>> {
         let create_keys = |stdout, area| -> Vec<DiffKey> {
-            self.split_by_newline_vec(stdout)
+            common::split_by_newline::<Vec<String>>(stdout)
                 .into_iter()
                 .map(|path| DiffKey { path, area })
                 .collect()
@@ -139,8 +139,7 @@ impl Git {
             &skip.to_string(),
             Self::LOG_FORMAT,
         ])?;
-        let logs = self
-            .split_by_newline_vec(&stdout)
+        let logs = common::split_by_newline::<Vec<String>>(&stdout)
             .into_iter()
             .filter_map(|log| {
                 let mut parts = log.split('\x1f');
@@ -195,29 +194,17 @@ impl Git {
 
     fn branch_list(&self) -> anyhow::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute_here(["branch"])?;
-        Ok(self.split_by_newline(&stdout))
+        Ok(common::split_by_newline(&stdout))
     }
 
     fn branch_remotes(&self) -> anyhow::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute_here(["branch", "--remotes"])?;
-        Ok(self.split_by_newline(&stdout))
+        Ok(common::split_by_newline(&stdout))
     }
 
     fn remote(&self) -> anyhow::Result<HashSet<String>> {
         let Output { stdout, .. } = self.execute_here(["remote"])?;
-        Ok(self.split_by_newline(&stdout))
-    }
-
-    fn split_by_newline<T: FromIterator<String>>(&self, text: &[u8]) -> T {
-        String::from_utf8_lossy(text)
-            .lines()
-            .filter(|line| !line.is_empty())
-            .map(str::to_string)
-            .collect()
-    }
-
-    fn split_by_newline_vec(&self, text: &[u8]) -> Vec<String> {
-        self.split_by_newline(text)
+        Ok(common::split_by_newline(&stdout))
     }
 
     fn execute<I, S>(&self, args: I, dir: Option<&Path>) -> anyhow::Result<Output>
@@ -291,118 +278,5 @@ impl Git {
         S: AsRef<OsStr>,
     {
         self.execute_and_log(args, None);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn split_by_newline() {
-        let git = Git;
-        let text = b"line1\nline2\nline3";
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert_eq!(result, vec!["line1", "line2", "line3"]);
-    }
-
-    #[test]
-    fn split_by_newline_empty_lines() {
-        let git = Git;
-        let text = b"line1\n\nline2\n\n\nline3";
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert_eq!(result, vec!["line1", "line2", "line3"]);
-    }
-
-    #[test]
-    fn split_by_newline_empty_text() {
-        let git = Git;
-        let text = b"";
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert!(result.is_empty());
-    }
-
-    #[test]
-    fn split_by_newline_only_newlines() {
-        let git = Git;
-        let text = b"\n\n\n";
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert!(result.is_empty());
-    }
-
-    #[test]
-    fn split_by_newline_single_line() {
-        let git = Git;
-        let text = b"line1";
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert_eq!(result, vec!["line1"]);
-    }
-
-    #[test]
-    fn split_by_newline_trailing_newline() {
-        let git = Git;
-        let text = b"line1\nline2\n";
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert_eq!(result, vec!["line1", "line2"]);
-    }
-
-    #[test]
-    fn split_by_newline_leading_newline() {
-        let git = Git;
-        let text = b"\nline1\nline2";
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert_eq!(result, vec!["line1", "line2"]);
-    }
-
-    #[test]
-    fn split_by_newline_unicode() {
-        let git = Git;
-        let text = " línea1\n línea2\n日本語".as_bytes();
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert_eq!(result, vec![" línea1", " línea2", "日本語"]);
-    }
-
-    #[test]
-    fn split_by_newline_multiple_trailing_newlines() {
-        let git = Git;
-        let text = b"line1\n\n\n";
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert_eq!(result, vec!["line1"]);
-    }
-
-    #[test]
-    fn split_by_newline_multiple_leading_newlines() {
-        let git = Git;
-        let text = b"\n\n\nline1";
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert_eq!(result, vec!["line1"]);
-    }
-
-    #[test]
-    fn split_by_newline_carriage_return() {
-        let git = Git;
-        let text = b"line1\r\nline2\r\nline3";
-        let result: Vec<String> = git.split_by_newline(text);
-
-        assert_eq!(result, vec!["line1", "line2", "line3"]);
-    }
-
-    #[test]
-    fn split_by_newline_vec() {
-        let git = Git;
-        let text = b"\n\nline1\n\nline2\n\nline3\n\n";
-        let result = git.split_by_newline_vec(text);
-
-        assert_eq!(result, vec!["line1", "line2", "line3"]);
     }
 }
