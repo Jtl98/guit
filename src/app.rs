@@ -202,7 +202,8 @@ impl eframe::App for App {
                     DiffPanel::new(diff).show(ctx, &mut action);
                 }
             } else {
-                GitLogs::new(&repo.logs, &mut self.logs_scroll_threshold).show(ctx, &mut action);
+                GitLogs::new(&repo.dated_logs, &mut self.logs_scroll_threshold)
+                    .show(ctx, &mut action);
             }
         } else {
             WelcomePanel::new(&self.config).show(ctx, &mut action);

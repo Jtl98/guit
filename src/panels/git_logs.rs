@@ -1,5 +1,5 @@
 use crate::{
-    common::{Action, Logs, RepoAction::LoadLogs},
+    common::{Action, DatedLogs, RepoAction::LoadLogs},
     panels::Show,
 };
 use eframe::egui::{
@@ -9,16 +9,16 @@ use eframe::egui::{
 use std::cmp::Reverse;
 
 pub struct GitLogs<'a> {
-    logs: &'a Logs,
+    dated_logs: &'a DatedLogs,
     logs_scroll_threshold: &'a mut f32,
 }
 
 impl<'a> GitLogs<'a> {
     const SCROLL_THRESHOLD: f32 = 100.0;
 
-    pub fn new(logs: &'a Logs, logs_scroll_threshold: &'a mut f32) -> Self {
+    pub fn new(dated_logs: &'a DatedLogs, logs_scroll_threshold: &'a mut f32) -> Self {
         Self {
-            logs,
+            dated_logs,
             logs_scroll_threshold,
         }
     }
@@ -30,7 +30,7 @@ impl<'a> Show for GitLogs<'a> {
             let output = ScrollArea::both().show(ui, |ui| {
                 ui.take_available_space();
 
-                for (Reverse(date), logs) in self.logs {
+                for (Reverse(date), logs) in self.dated_logs {
                     ui.add(Label::new(RichText::new(date).monospace().strong()).extend());
 
                     for log in logs {

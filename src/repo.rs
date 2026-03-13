@@ -1,5 +1,5 @@
 use crate::{
-    common::{Branches, Diffs, Log, Logs},
+    common::{Branches, DatedLogs, Diffs, Log},
     git::Git,
 };
 use std::{cmp::Reverse, path::PathBuf};
@@ -9,7 +9,7 @@ pub struct Repo {
     pub dir: PathBuf,
     pub diffs: Diffs,
     pub branches: Branches,
-    pub logs: Logs,
+    pub dated_logs: DatedLogs,
     logs_skipped: usize,
 }
 
@@ -25,19 +25,19 @@ impl Repo {
             .collect::<anyhow::Result<Diffs>>()?;
         let branches = git.branches()?;
         let logs_skipped = 0;
-        let logs = git
-            .log(logs_skipped)?
-            .into_iter()
-            .fold(Logs::new(), |mut logs, log| {
-                Self::add_log(&mut logs, log);
-                logs
-            });
+        let dated_logs =
+            git.log(logs_skipped)?
+                .into_iter()
+                .fold(DatedLogs::new(), |mut logs, log| {
+                    Self::add_log(&mut logs, log);
+                    logs
+                });
 
         Ok(Self {
             dir,
             diffs,
             branches,
-            logs,
+            dated_logs,
             logs_skipped,
         })
     }
@@ -48,13 +48,13 @@ impl Repo {
         self.logs_skipped += logs.len();
 
         for log in logs {
-            Self::add_log(&mut self.logs, log);
+            Self::add_log(&mut self.dated_logs, log);
         }
 
         Ok(())
     }
 
-    fn add_log(logs: &mut Logs, log: Log) {
+    fn add_log(logs: &mut DatedLogs, log: Log) {
         let date = Reverse(log.short_date.clone());
         logs.entry(date).or_default().push(log);
     }
