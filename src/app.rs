@@ -139,6 +139,10 @@ impl App {
                     error!("{}", error);
                 }
             }),
+            RepoAction::UndoCommit => Box::new(move || {
+                git.reset_soft_head_1();
+                Self::refresh(&git, &repo);
+            }),
         };
 
         Self::execute(func, ctx);
