@@ -12,6 +12,7 @@ pub struct TopPanel<'a> {
     is_executing: &'a bool,
     branches: &'a Branches,
     branch_name: &'a mut Option<String>,
+    branch_search: &'a mut String,
 }
 
 impl<'a> TopPanel<'a> {
@@ -19,11 +20,13 @@ impl<'a> TopPanel<'a> {
         is_executing: &'a bool,
         branches: &'a Branches,
         branch_name: &'a mut Option<String>,
+        branch_search: &'a mut String,
     ) -> Self {
         Self {
             is_executing,
             branches,
             branch_name,
+            branch_search,
         }
     }
 }
@@ -65,15 +68,27 @@ impl<'a> Show for TopPanel<'a> {
                         *action = Some(Action::File(Close));
                     }
 
-                    ComboBox::from_id_salt("branches")
+                    let branch_box = ComboBox::from_id_salt("branches")
                         .selected_text(&self.branches.current)
                         .show_ui(ui, |ui| {
+                            ui.take_available_height();
+                            ui.text_edit_singleline(self.branch_search).request_focus();
+
                             for branch in &self.branches.other {
+                                let searched_branch = self.branch_search.to_lowercase();
+                                if !branch.name.to_lowercase().contains(&searched_branch) {
+                                    continue;
+                                }
+
                                 if ui.selectable_label(false, branch.to_string()).clicked() {
                                     *action = Some(Action::Repo(Switch(branch.clone())));
                                 }
                             }
                         });
+
+                    if branch_box.response.clicked() {
+                        self.branch_search.clear();
+                    }
 
                     let branch_name = self.branch_name.get_or_insert_default();
                     let branch_name_provided = !branch_name.trim().is_empty();

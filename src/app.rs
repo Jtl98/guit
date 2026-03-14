@@ -34,6 +34,7 @@ pub struct App {
     selected_key: Option<DiffKey>,
     commit_message: Option<String>,
     branch_name: Option<String>,
+    branch_search: String,
     logs_scroll_threshold: f32,
 }
 
@@ -189,8 +190,13 @@ impl eframe::App for App {
         if let Some(repo) = &self.repo {
             let repo = repo.read().unwrap();
 
-            TopPanel::new(&self.is_executing, &repo.branches, &mut self.branch_name)
-                .show(ctx, &mut action);
+            TopPanel::new(
+                &self.is_executing,
+                &repo.branches,
+                &mut self.branch_name,
+                &mut self.branch_search,
+            )
+            .show(ctx, &mut action);
 
             BottomPanel::new(
                 self.is_executing,
