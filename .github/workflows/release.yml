@@ -45,14 +45,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            platform: linux-x64
-            archive: tar.gz
           - os: macos-latest
-            platform: macos-arm64
-            archive: tar.gz
           - os: windows-latest
-            platform: windows-x64
-            archive: zip
+            extension: .exe
     runs-on: ${{ matrix.os }}
     needs: create-release-if-nonexistent
     if: needs.create-release-if-nonexistent.outputs.release-exists == 'false'
@@ -69,7 +64,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ matrix.platform }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: build
         run: cargo build --release
@@ -77,13 +72,8 @@ jobs:
       - name: test
         run: cargo test --release -- --show-output
 
-      - name: package (unix)
-        if: runner.os != 'Windows'
-        run: tar -czf "guit-${{ needs.create-release-if-nonexistent.outputs.release-version }}-${{ matrix.platform }}.${{ matrix.archive }}" -C target/release guit
+      - name: package
+        run: tar -czf "guit-${{ needs.create-release-if-nonexistent.outputs.release-version }}-${{ matrix.os }}.tar.gz" -C target/release guit${{ matrix.extension }}
 
-      - name: package (windows)
-        if: runner.os == 'Windows'
-        run: Compress-Archive -DestinationPath "guit-${{ needs.create-release-if-nonexistent.outputs.release-version }}-${{ matrix.platform }}.${{ matrix.archive }}" -Path target/release/guit.exe
-
-      - name: upload release
-        run: gh release upload "${{ needs.create-release-if-nonexistent.outputs.release-version }}" "guit-${{ needs.create-release-if-nonexistent.outputs.release-version }}-${{ matrix.platform }}.${{ matrix.archive }}"
+      - name: upload
+        run: gh release upload "${{ needs.create-release-if-nonexistent.outputs.release-version }}" "guit-${{ needs.create-release-if-nonexistent.outputs.release-version }}-${{ matrix.os }}.tar.gz"
