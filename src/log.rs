@@ -92,6 +92,10 @@ impl From<&Entry> for String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fmt::Arguments;
+
+    const GUIT_TARGET: &str = "guit::test";
+    const OTHER_TARGET: &str = "other::test";
 
     #[test]
     fn logger_new_has_no_entries() {
@@ -111,11 +115,7 @@ mod tests {
     #[test]
     fn logger_clear_removes_entries() {
         let logger = Logger::new();
-        let record = Record::builder()
-            .level(Level::Info)
-            .target("guit::test")
-            .args(format_args!("info message"))
-            .build();
+        let record = create_record(format_args!("info message"), Level::Info, GUIT_TARGET);
 
         logger.log(&record);
         assert_eq!(logger.read().len(), 1);
@@ -127,18 +127,9 @@ mod tests {
     #[test]
     fn logger_enabled_true_for_error_warn_info_levels() {
         let logger = Logger::new();
-        let error = Metadata::builder()
-            .level(Level::Error)
-            .target("guit::test")
-            .build();
-        let warn = Metadata::builder()
-            .level(Level::Warn)
-            .target("guit::test")
-            .build();
-        let info = Metadata::builder()
-            .level(Level::Info)
-            .target("guit::test")
-            .build();
+        let error = create_metadata(Level::Error, GUIT_TARGET);
+        let warn = create_metadata(Level::Warn, GUIT_TARGET);
+        let info = create_metadata(Level::Info, GUIT_TARGET);
 
         assert!(logger.enabled(&error));
         assert!(logger.enabled(&warn));
@@ -148,14 +139,8 @@ mod tests {
     #[test]
     fn logger_enabled_false_for_debug_trace_levels() {
         let logger = Logger::new();
-        let debug = Metadata::builder()
-            .level(Level::Debug)
-            .target("guit::test")
-            .build();
-        let trace = Metadata::builder()
-            .level(Level::Trace)
-            .target("guit::test")
-            .build();
+        let debug = create_metadata(Level::Debug, GUIT_TARGET);
+        let trace = create_metadata(Level::Trace, GUIT_TARGET);
 
         assert!(!logger.enabled(&debug));
         assert!(!logger.enabled(&trace));
@@ -164,10 +149,7 @@ mod tests {
     #[test]
     fn logger_enabled_true_for_guit_modules() {
         let logger = Logger::new();
-        let guit = Metadata::builder()
-            .level(Level::Info)
-            .target("guit::module")
-            .build();
+        let guit = create_metadata(Level::Info, GUIT_TARGET);
 
         assert!(logger.enabled(&guit));
     }
@@ -175,10 +157,7 @@ mod tests {
     #[test]
     fn logger_enabled_false_for_other_modules() {
         let logger = Logger::new();
-        let other = Metadata::builder()
-            .level(Level::Info)
-            .target("other::module")
-            .build();
+        let other = create_metadata(Level::Info, OTHER_TARGET);
 
         assert!(!logger.enabled(&other));
     }
@@ -186,11 +165,7 @@ mod tests {
     #[test]
     fn logger_log_ignores_empty_message() {
         let logger = Logger::new();
-        let record = Record::builder()
-            .level(Level::Info)
-            .target("guit::test")
-            .args(format_args!("   \n\t  "))
-            .build();
+        let record = create_record(format_args!("   \n\t  "), Level::Info, GUIT_TARGET);
 
         logger.log(&record);
 
@@ -200,11 +175,7 @@ mod tests {
     #[test]
     fn logger_log_stores_valid_message() {
         let logger = Logger::new();
-        let record = Record::builder()
-            .level(Level::Info)
-            .target("guit::module")
-            .args(format_args!("info message"))
-            .build();
+        let record = create_record(format_args!("info message"), Level::Info, GUIT_TARGET);
 
         logger.log(&record);
         let entries = logger.read();
@@ -217,16 +188,8 @@ mod tests {
     #[test]
     fn logger_log_reverses_multiple_entries() {
         let logger = Logger::new();
-        let first_record = Record::builder()
-            .level(Level::Info)
-            .target("guit::test")
-            .args(format_args!("first message"))
-            .build();
-        let second_record = Record::builder()
-            .level(Level::Info)
-            .target("guit::test")
-            .args(format_args!("second message"))
-            .build();
+        let first_record = create_record(format_args!("first message"), Level::Info, GUIT_TARGET);
+        let second_record = create_record(format_args!("second message"), Level::Info, GUIT_TARGET);
 
         logger.log(&first_record);
         logger.log(&second_record);
@@ -240,11 +203,7 @@ mod tests {
     #[test]
     fn logger_log_ignores_other_modules() {
         let logger = Logger::new();
-        let record = Record::builder()
-            .level(Level::Info)
-            .target("other::module")
-            .args(format_args!("info message"))
-            .build();
+        let record = create_record(format_args!("info message"), Level::Info, OTHER_TARGET);
 
         logger.log(&record);
 
@@ -254,21 +213,9 @@ mod tests {
     #[test]
     fn logger_log_stores_error_warn_info_levels() {
         let logger = Logger::new();
-        let error = Record::builder()
-            .level(Level::Error)
-            .target("guit::test")
-            .args(format_args!("error message"))
-            .build();
-        let warn = Record::builder()
-            .level(Level::Warn)
-            .target("guit::test")
-            .args(format_args!("warn message"))
-            .build();
-        let info = Record::builder()
-            .level(Level::Info)
-            .target("guit::test")
-            .args(format_args!("info message"))
-            .build();
+        let error = create_record(format_args!("error message"), Level::Error, GUIT_TARGET);
+        let warn = create_record(format_args!("warn message"), Level::Warn, GUIT_TARGET);
+        let info = create_record(format_args!("info message"), Level::Info, GUIT_TARGET);
 
         logger.log(&error);
         logger.log(&warn);
@@ -284,16 +231,8 @@ mod tests {
     #[test]
     fn logger_log_ignores_debug_trace_levels() {
         let logger = Logger::new();
-        let debug = Record::builder()
-            .level(Level::Debug)
-            .target("guit::test")
-            .args(format_args!("debug message"))
-            .build();
-        let trace = Record::builder()
-            .level(Level::Trace)
-            .target("guit::test")
-            .args(format_args!("trace message"))
-            .build();
+        let debug = create_record(format_args!("debug message"), Level::Debug, GUIT_TARGET);
+        let trace = create_record(format_args!("trace message"), Level::Trace, GUIT_TARGET);
 
         logger.log(&debug);
         logger.log(&trace);
@@ -323,5 +262,17 @@ mod tests {
         let stringified = entry.to_string();
 
         assert_eq!(stringified, "[999 INFO] info message");
+    }
+
+    fn create_metadata<'a>(level: Level, target: &'a str) -> Metadata<'a> {
+        Metadata::builder().level(level).target(target).build()
+    }
+
+    fn create_record<'a>(args: Arguments<'a>, level: Level, target: &'a str) -> Record<'a> {
+        Record::builder()
+            .args(args)
+            .level(level)
+            .target(target)
+            .build()
     }
 }
