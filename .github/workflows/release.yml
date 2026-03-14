@@ -73,7 +73,7 @@ jobs:
         run: cargo test --release -- --show-output
 
       - name: package
-        run: tar -czf "guit-${{ needs.create-release-if-nonexistent.outputs.release-version }}-${{ matrix.os }}.tar.gz" -C target/release guit${{ matrix.extension }}
+        run: tar -czf "guit-${{ matrix.os }}.tar.gz" -C target/release guit${{ matrix.extension }}
 
       - name: upload
-        run: gh release upload "${{ needs.create-release-if-nonexistent.outputs.release-version }}" "guit-${{ needs.create-release-if-nonexistent.outputs.release-version }}-${{ matrix.os }}.tar.gz"
+        run: gh release upload "${{ needs.create-release-if-nonexistent.outputs.release-version }}" "guit-${{ matrix.os }}.tar.gz"
