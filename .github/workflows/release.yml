@@ -12,7 +12,7 @@ env:
   GH_TOKEN: ${{ github.token }}
 
 jobs:
-  check-release-exists:
+  create-release-if-nonexistent:
     runs-on: ubuntu-latest
     outputs:
       release-version: ${{ steps.version.outputs.release-version }}
@@ -36,10 +36,26 @@ jobs:
             echo "release-exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-  release:
-    runs-on: ubuntu-latest
-    needs: check-release-exists
-    if: needs.check-release-exists.outputs.release-exists == 'false'
+      - name: create release
+        if: steps.exists.outputs.release-exists == 'false'
+        run: gh release create --generate-notes "${{ steps.version.outputs.release-version }}"
+
+  build-and-upload:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: x64-linux
+            archive: tar.gz
+          - os: macos-latest
+            platform: arm64-macos
+            archive: tar.gz
+          - os: windows-latest
+            platform: x64-windows
+            archive: zip
+    runs-on: ${{ matrix.os }}
+    needs: create-release-if-nonexistent
+    if: needs.create-release-if-nonexistent.outputs.release-exists == 'false'
     steps:
       - name: checkout
         uses: actions/checkout@v6
@@ -53,7 +69,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.platform }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: build
         run: cargo build --release
@@ -61,8 +77,13 @@ jobs:
       - name: test
         run: cargo test --release -- --show-output
 
-      - name: package
-        run: tar -czf "guit-${{ needs.check-release-exists.outputs.release-version }}.tar.gz" -C target/release guit
+      - name: package (unix)
+        if: runner.os != 'Windows'
+        run: tar -czf "guit-${{ needs.create-release-if-nonexistent.outputs.release-version }}-${{ matrix.platform }}.${{ matrix.archive }}" -C target/release guit
 
-      - name: release
-        run: gh release create "${{ needs.check-release-exists.outputs.release-version }}" --generate-notes "guit-${{ needs.check-release-exists.outputs.release-version }}.tar.gz"
+      - name: package (windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -DestinationPath "guit-${{ needs.create-release-if-nonexistent.outputs.release-version }}-${{ matrix.platform }}.${{ matrix.archive }}" -Path target/release/guit.exe
+
+      - name: upload release
+        run: gh release upload "${{ needs.create-release-if-nonexistent.outputs.release-version }}" "guit-${{ needs.create-release-if-nonexistent.outputs.release-version }}-${{ matrix.platform }}.${{ matrix.archive }}"
