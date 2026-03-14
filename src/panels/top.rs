@@ -68,7 +68,7 @@ impl<'a> Show for TopPanel<'a> {
                         *action = Some(Action::File(Close));
                     }
 
-                    ComboBox::from_id_salt("branches")
+                    let branch_box = ComboBox::from_id_salt("branches")
                         .selected_text(&self.branches.current)
                         .show_ui(ui, |ui| {
                             ui.take_available_height();
@@ -85,6 +85,10 @@ impl<'a> Show for TopPanel<'a> {
                                 }
                             }
                         });
+
+                    if branch_box.response.clicked() {
+                        self.branch_search.clear();
+                    }
 
                     let branch_name = self.branch_name.get_or_insert_default();
                     let branch_name_provided = !branch_name.trim().is_empty();
