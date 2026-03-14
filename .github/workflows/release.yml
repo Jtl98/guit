@@ -45,13 +45,13 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            platform: x64-linux
+            platform: linux-x64
             archive: tar.gz
           - os: macos-latest
-            platform: arm64-macos
+            platform: macos-arm64
             archive: tar.gz
           - os: windows-latest
-            platform: x64-windows
+            platform: windows-x64
             archive: zip
     runs-on: ${{ matrix.os }}
     needs: create-release-if-nonexistent
