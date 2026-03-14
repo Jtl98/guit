@@ -172,6 +172,10 @@ impl Git {
         self.execute_and_log_here(["push"]);
     }
 
+    pub fn reset_soft_head_1(&self) {
+        self.execute_and_log_here(["reset", "--soft", "HEAD~1"]);
+    }
+
     pub fn rev_parse_show_toplevel(&self, dir: &Path) -> anyhow::Result<PathBuf> {
         let Output { stdout, .. } = self.execute_in(["rev-parse", "--show-toplevel"], dir)?;
         let trimmed = stdout.trim_ascii_end();

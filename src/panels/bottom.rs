@@ -1,5 +1,8 @@
 use crate::{
-    common::{Action, DiffKey, RepoAction::Commit},
+    common::{
+        Action, DiffKey,
+        RepoAction::{self, Commit},
+    },
     panels::Show,
 };
 use eframe::egui::{Align, Button, Context, Key, Layout, TextEdit, TopBottomPanel};
@@ -50,6 +53,11 @@ impl<'a> Show for BottomPanel<'a> {
                 {
                     *action = Some(Action::Repo(Commit(commit_message)));
                     *self.selected_key = None;
+                }
+
+                let undo_button = ui.add_enabled(!self.is_executing, Button::new("undo"));
+                if undo_button.clicked() {
+                    *action = Some(Action::Repo(RepoAction::UndoCommit));
                 }
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
