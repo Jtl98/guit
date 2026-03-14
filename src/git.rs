@@ -74,10 +74,6 @@ impl Git {
         Ok(Branches { current, other })
     }
 
-    pub fn branch_create(&self, name: &str) {
-        self.execute_and_log_here(["branch", name]);
-    }
-
     pub fn commit(&self, message: &str) {
         self.execute_and_log_here(["commit", "-m", message]);
     }
@@ -194,6 +190,10 @@ impl Git {
                 self.execute_and_log_here(["switch", "--create", name, &start_point])
             }
         }
+    }
+
+    pub fn switch_create(&self, name: &str) {
+        self.execute_and_log_here(["switch", "--create", name]);
     }
 
     fn branch(&self) -> anyhow::Result<HashSet<String>> {
