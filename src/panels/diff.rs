@@ -18,8 +18,6 @@ impl<'a> Show for DiffPanel<'a> {
     fn show(&mut self, ctx: &Context, _action: &mut Option<Action>) {
         CentralPanel::default().show(ctx, |ui| {
             ui.horizontal_wrapped(|ui| {
-                ui.spacing_mut().interact_size.y = 0.0;
-
                 ui.colored_label(Color32::GREEN, &self.diff.numstat.additions);
                 ui.colored_label(Color32::RED, &self.diff.numstat.deletions);
             });
