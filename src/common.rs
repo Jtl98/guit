@@ -32,6 +32,11 @@ pub enum RepoAction {
     UndoCommit,
 }
 
+pub struct Diff {
+    pub content: String,
+    pub numstat: DiffNumstat,
+}
+
 #[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
 pub struct DiffKey {
     pub path: String,
@@ -53,6 +58,11 @@ pub enum DiffArea {
     Untracked,
     Unstaged,
     Staged,
+}
+
+pub struct DiffNumstat {
+    pub additions: String,
+    pub deletions: String,
 }
 
 #[derive(Default)]
@@ -102,7 +112,7 @@ pub enum BranchArea {
     Remote(String),
 }
 
-pub type Diffs = BTreeMap<DiffKey, String>;
+pub type Diffs = BTreeMap<DiffKey, Diff>;
 
 pub type DatedLogs = BTreeMap<Reverse<String>, Vec<Log>>;
 
@@ -119,6 +129,13 @@ pub fn split_by_newline<B: FromIterator<String>>(bytes: &[u8]) -> B {
     String::from_utf8_lossy(bytes)
         .lines()
         .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect()
+}
+
+pub fn split_by_whitespace<B: FromIterator<String>>(bytes: &[u8]) -> B {
+    String::from_utf8_lossy(bytes)
+        .split_whitespace()
         .map(str::to_string)
         .collect()
 }

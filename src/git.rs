@@ -1,4 +1,5 @@
-use crate::common::{self, Branch, BranchArea, Branches, DiffArea, DiffKey, Log};
+use crate::common::{self, Branch, BranchArea, Branches, DiffArea, DiffKey, DiffNumstat, Log};
+use anyhow::anyhow;
 use log::{error, info};
 use std::{
     collections::{BTreeSet, HashSet},
@@ -116,6 +117,30 @@ impl Git {
         keys.extend(create_keys(&staged_stdout, DiffArea::Staged));
 
         Ok(keys)
+    }
+
+    pub fn diff_numstat(&self, DiffKey { path, area }: &DiffKey) -> anyhow::Result<DiffNumstat> {
+        let Output { stdout, .. } = match area {
+            DiffArea::Untracked => {
+                let lines = fs::read_to_string(path)?.lines().count();
+
+                return Ok(DiffNumstat {
+                    additions: lines.to_string(),
+                    deletions: "0".to_owned(),
+                });
+            }
+            DiffArea::Unstaged => self.execute_here(["diff", "--numstat", path])?,
+            DiffArea::Staged => self.execute_here(["diff", "--staged", "--numstat", path])?,
+        };
+        let numstat: [String; 3] = common::split_by_whitespace::<Vec<String>>(&stdout)
+            .try_into()
+            .map_err(|_| anyhow!("diff_numstat parsing failed"))?;
+        let [additions, deletions, _path] = numstat;
+
+        Ok(DiffNumstat {
+            additions,
+            deletions,
+        })
     }
 
     pub fn fetch_all(&self) {
