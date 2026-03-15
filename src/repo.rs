@@ -1,5 +1,5 @@
 use crate::{
-    common::{Branches, DatedLogs, Diffs, Log},
+    common::{Branches, DatedLogs, Diff, Diffs, Log},
     git::Git,
 };
 use std::{cmp::Reverse, path::PathBuf};
@@ -19,7 +19,10 @@ impl Repo {
             .diff_name_only()?
             .into_iter()
             .map(|key| {
-                let diff = git.diff(&key)?;
+                let content = git.diff(&key)?;
+                let numstat = git.diff_numstat(&key)?;
+                let diff = Diff { content, numstat };
+
                 Ok((key, diff))
             })
             .collect::<anyhow::Result<Diffs>>()?;
