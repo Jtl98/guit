@@ -132,10 +132,10 @@ impl Git {
             DiffArea::Unstaged => self.execute_here(["diff", "--numstat", path])?,
             DiffArea::Staged => self.execute_here(["diff", "--staged", "--numstat", path])?,
         };
-        let numstat: [String; 3] = common::split_by_whitespace::<Vec<String>>(&stdout)
+        let numstat: [String; 2] = common::split_whitespace_take::<Vec<String>>(&stdout, 2)
             .try_into()
-            .map_err(|_| anyhow!("diff_numstat parsing failed"))?;
-        let [additions, deletions, _path] = numstat;
+            .map_err(|_| anyhow!("diff_numstat split failed"))?;
+        let [additions, deletions] = numstat;
 
         Ok(DiffNumstat {
             additions,
