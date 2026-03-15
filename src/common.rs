@@ -231,4 +231,67 @@ mod tests {
 
         assert_eq!(result, vec!["line1", "line2", "line3"]);
     }
+
+    #[test]
+    fn split_by_whitespace_basic() {
+        let bytes = b"word1 word2 word3";
+        let result: Vec<String> = split_by_whitespace(bytes);
+        assert_eq!(result, vec!["word1", "word2", "word3"]);
+    }
+
+    #[test]
+    fn split_by_whitespace_multiple_spaces() {
+        let bytes = b"word1  word2   word3";
+        let result: Vec<String> = split_by_whitespace(bytes);
+        assert_eq!(result, vec!["word1", "word2", "word3"]);
+    }
+
+    #[test]
+    fn split_by_whitespace_empty_bytes() {
+        let bytes = b"";
+        let result: Vec<String> = split_by_whitespace(bytes);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn split_by_whitespace_only_whitespace() {
+        let bytes = b"   \t\n  ";
+        let result: Vec<String> = split_by_whitespace(bytes);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn split_by_whitespace_single_word() {
+        let bytes = b"word1";
+        let result: Vec<String> = split_by_whitespace(bytes);
+        assert_eq!(result, vec!["word1"]);
+    }
+
+    #[test]
+    fn split_by_whitespace_leading_whitespace() {
+        let bytes = b"   word1 word2";
+        let result: Vec<String> = split_by_whitespace(bytes);
+        assert_eq!(result, vec!["word1", "word2"]);
+    }
+
+    #[test]
+    fn split_by_whitespace_trailing_whitespace() {
+        let bytes = b"word1 word2   ";
+        let result: Vec<String> = split_by_whitespace(bytes);
+        assert_eq!(result, vec!["word1", "word2"]);
+    }
+
+    #[test]
+    fn split_by_whitespace_unicode() {
+        let bytes = "función éxito 日本語".as_bytes();
+        let result: Vec<String> = split_by_whitespace(bytes);
+        assert_eq!(result, vec!["función", "éxito", "日本語"]);
+    }
+
+    #[test]
+    fn split_by_whitespace_mixed_whitespace() {
+        let bytes = b"word1\tword2\nword3  word4";
+        let result: Vec<String> = split_by_whitespace(bytes);
+        assert_eq!(result, vec!["word1", "word2", "word3", "word4"]);
+    }
 }
