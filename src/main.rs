@@ -1,4 +1,4 @@
-mod app;
+    mod app;
 mod common;
 mod config;
 mod git;
