@@ -1,6 +1,7 @@
 mod app;
 mod common;
 mod config;
+mod execute;
 mod git;
 mod log;
 mod panels;
