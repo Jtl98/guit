@@ -116,9 +116,18 @@ impl App {
         let repo = Arc::clone(repo);
 
         let func: Box<dyn FnOnce() + Send + 'static> = match action {
-            Fetch => Box::new(move || git.fetch_all()),
-            Pull => Box::new(move || git.pull()),
-            Push => Box::new(move || git.push()),
+            Fetch => Box::new(move || {
+                git.fetch_all();
+                Self::refresh(&git, &repo);
+            }),
+            Pull => Box::new(move || {
+                git.pull();
+                Self::refresh(&git, &repo);
+            }),
+            Push => Box::new(move || {
+                git.push();
+                Self::refresh(&git, &repo);
+            }),
             Refresh => Box::new(move || Self::refresh(&git, &repo)),
             AddOrRestore(key) => Box::new(move || {
                 git.add_or_restore(&key);
