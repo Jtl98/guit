@@ -3,7 +3,8 @@ use crate::{
         Action, DiffKey,
         FileAction::{self, Close, Init, Open, OpenRecent, RemoveRecent},
         RepoAction::{
-            self, AddOrRestore, Commit, Create, Fetch, LoadLogs, Pull, Push, Refresh, Switch,
+            self, AddOrRestore, Commit, Create, Fetch, LoadLogs, Pull, Push, Refresh, Stash,
+            Switch, UndoCommit,
         },
     },
     config::Config,
@@ -140,7 +141,11 @@ impl App {
                     error!("{}", error);
                 }
             }),
-            RepoAction::UndoCommit => Box::new(move || {
+            Stash => Box::new(move || {
+                git.stash_push_include_untracked();
+                Self::refresh(&git, &repo);
+            }),
+            UndoCommit => Box::new(move || {
                 git.reset_soft_head_1();
                 Self::refresh(&git, &repo);
             }),

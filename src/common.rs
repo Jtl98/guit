@@ -29,6 +29,7 @@ pub enum RepoAction {
     Switch(Branch),
     Create(String),
     LoadLogs,
+    Stash,
     UndoCommit,
 }
 

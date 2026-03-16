@@ -205,6 +205,10 @@ impl Git {
         Ok(PathBuf::from(lossy))
     }
 
+    pub fn stash_push_include_untracked(&self) {
+        self.execute_and_log_here(["stash", "push", "--include-untracked"]);
+    }
+
     pub fn switch(&self, branch: &Branch) {
         let Branch { name, area } = branch;
 

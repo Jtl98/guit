@@ -2,7 +2,7 @@ use crate::{
     common::{
         Action, Branches,
         FileAction::Close,
-        RepoAction::{Create, Fetch, Pull, Push, Refresh, Switch},
+        RepoAction::{Create, Fetch, Pull, Push, Refresh, Stash, Switch},
     },
     panels::Show,
 };
@@ -61,6 +61,13 @@ impl<'a> Show for TopPanel<'a> {
                     .clicked()
                 {
                     *action = Some(Action::Repo(Push));
+                }
+
+                if ui
+                    .add_enabled(!self.is_executing, Button::new("stash"))
+                    .clicked()
+                {
+                    *action = Some(Action::Repo(Stash));
                 }
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
