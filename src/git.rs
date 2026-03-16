@@ -1,18 +1,27 @@
-use crate::common::{self, Branch, BranchArea, Branches, DiffArea, DiffKey, DiffNumstat, Log};
+use crate::{
+    common::{self, Branch, BranchArea, Branches, DiffArea, DiffKey, DiffNumstat, Log},
+    execute::Execute,
+};
 use anyhow::anyhow;
-use log::{error, info};
 use std::{
     collections::{BTreeSet, HashSet},
-    ffi::OsStr,
     fs,
     path::{Path, PathBuf},
-    process::{Command, Output},
+    process::Output,
 };
 
 #[derive(Default)]
-pub struct Git;
+pub struct Git<E>
+where
+    E: Execute,
+{
+    executor: E,
+}
 
-impl Git {
+impl<E> Git<E>
+where
+    E: Execute,
+{
     pub const LOG_MAX_COUNT: usize = 100;
     const LOG_FORMAT: &str = concat!(
         "--format=%an",
@@ -31,9 +40,11 @@ impl Git {
     pub fn add_or_restore(&self, key: &DiffKey) {
         match key.area {
             DiffArea::Untracked | DiffArea::Unstaged => {
-                self.execute_and_log_here(["add", &key.path])
+                self.executor.execute_and_log_here(["add", &key.path])
             }
-            DiffArea::Staged => self.execute_and_log_here(["restore", "--staged", &key.path]),
+            DiffArea::Staged => self
+                .executor
+                .execute_and_log_here(["restore", "--staged", &key.path]),
         }
     }
 
@@ -76,14 +87,15 @@ impl Git {
     }
 
     pub fn commit(&self, message: &str) {
-        self.execute_and_log_here(["commit", "-m", message]);
+        self.executor
+            .execute_and_log_here(["commit", "-m", message]);
     }
 
     pub fn diff(&self, DiffKey { path, area }: &DiffKey) -> anyhow::Result<String> {
         let Output { stdout, .. } = match area {
             DiffArea::Untracked => return Ok(fs::read_to_string(path)?),
-            DiffArea::Unstaged => self.execute_here(["diff", path]),
-            DiffArea::Staged => self.execute_here(["diff", "--staged", path]),
+            DiffArea::Unstaged => self.executor.execute_here(["diff", path]),
+            DiffArea::Staged => self.executor.execute_here(["diff", "--staged", path]),
         }?;
         let header_end = stdout
             .iter()
@@ -105,10 +117,12 @@ impl Git {
         };
 
         let untracked_stdout = self
+            .executor
             .execute_here(["ls-files", "--others", "--exclude-standard"])?
             .stdout;
-        let unstaged_stdout = self.execute_here(["diff", "--name-only"])?.stdout;
+        let unstaged_stdout = self.executor.execute_here(["diff", "--name-only"])?.stdout;
         let staged_stdout = self
+            .executor
             .execute_here(["diff", "--staged", "--name-only"])?
             .stdout;
 
@@ -129,8 +143,11 @@ impl Git {
                     deletions: "0".to_owned(),
                 });
             }
-            DiffArea::Unstaged => self.execute_here(["diff", "--numstat", path])?,
-            DiffArea::Staged => self.execute_here(["diff", "--staged", "--numstat", path])?,
+            DiffArea::Unstaged => self.executor.execute_here(["diff", "--numstat", path])?,
+            DiffArea::Staged => {
+                self.executor
+                    .execute_here(["diff", "--staged", "--numstat", path])?
+            }
         };
         let numstat: [String; 2] = common::split_whitespace_take::<Vec<String>>(&stdout, 2)
             .try_into()
@@ -144,15 +161,16 @@ impl Git {
     }
 
     pub fn fetch_all(&self) {
-        self.execute_and_log_here(["fetch", "--all"]);
+        self.executor.execute_and_log_here(["fetch", "--all"]);
     }
 
     pub fn init(&self, dir: &Path) {
-        self.execute_and_log_in(["init", "-b", "main"], dir);
+        self.executor
+            .execute_and_log_in(["init", "-b", "main"], dir);
     }
 
     pub fn log(&self, skip: usize) -> anyhow::Result<Vec<Log>> {
-        let Output { stdout, .. } = self.execute_here([
+        let Output { stdout, .. } = self.executor.execute_here([
             "log",
             "--max-count",
             &Self::LOG_MAX_COUNT.to_string(),
@@ -186,19 +204,22 @@ impl Git {
     }
 
     pub fn pull(&self) {
-        self.execute_and_log_here(["pull"]);
+        self.executor.execute_and_log_here(["pull"]);
     }
 
     pub fn push(&self) {
-        self.execute_and_log_here(["push"]);
+        self.executor.execute_and_log_here(["push"]);
     }
 
     pub fn reset_soft_head_1(&self) {
-        self.execute_and_log_here(["reset", "--soft", "HEAD~1"]);
+        self.executor
+            .execute_and_log_here(["reset", "--soft", "HEAD~1"]);
     }
 
     pub fn rev_parse_show_toplevel(&self, dir: &Path) -> anyhow::Result<PathBuf> {
-        let Output { stdout, .. } = self.execute_in(["rev-parse", "--show-toplevel"], dir)?;
+        let Output { stdout, .. } = self
+            .executor
+            .execute_in(["rev-parse", "--show-toplevel"], dir)?;
         let trimmed = stdout.trim_ascii_end();
         let lossy = String::from_utf8_lossy(trimmed).to_string();
 
@@ -206,110 +227,40 @@ impl Git {
     }
 
     pub fn stash_push_include_untracked(&self) {
-        self.execute_and_log_here(["stash", "push", "--include-untracked"]);
+        self.executor
+            .execute_and_log_here(["stash", "push", "--include-untracked"]);
     }
 
     pub fn switch(&self, branch: &Branch) {
         let Branch { name, area } = branch;
 
         match area {
-            BranchArea::Local => self.execute_and_log_here(["switch", name]),
+            BranchArea::Local => self.executor.execute_and_log_here(["switch", name]),
             BranchArea::Remote(remote) => {
                 let start_point = format!("{remote}/{name}");
-                self.execute_and_log_here(["switch", "--create", name, &start_point])
+                self.executor
+                    .execute_and_log_here(["switch", "--create", name, &start_point])
             }
         }
     }
 
     pub fn switch_create(&self, name: &str) {
-        self.execute_and_log_here(["switch", "--create", name]);
+        self.executor
+            .execute_and_log_here(["switch", "--create", name]);
     }
 
     fn branch(&self) -> anyhow::Result<HashSet<String>> {
-        let Output { stdout, .. } = self.execute_here(["branch"])?;
+        let Output { stdout, .. } = self.executor.execute_here(["branch"])?;
         Ok(common::split_by_newline(&stdout))
     }
 
     fn branch_remotes(&self) -> anyhow::Result<HashSet<String>> {
-        let Output { stdout, .. } = self.execute_here(["branch", "--remotes"])?;
+        let Output { stdout, .. } = self.executor.execute_here(["branch", "--remotes"])?;
         Ok(common::split_by_newline(&stdout))
     }
 
     fn remote(&self) -> anyhow::Result<HashSet<String>> {
-        let Output { stdout, .. } = self.execute_here(["remote"])?;
+        let Output { stdout, .. } = self.executor.execute_here(["remote"])?;
         Ok(common::split_by_newline(&stdout))
-    }
-
-    fn execute<I, S>(&self, args: I, dir: Option<&Path>) -> anyhow::Result<Output>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        let mut command = Command::new("git");
-        command.args(args);
-
-        if let Some(dir) = dir {
-            command.current_dir(dir);
-        }
-
-        Ok(command.output()?)
-    }
-
-    fn execute_in<I, S>(&self, args: I, dir: &Path) -> anyhow::Result<Output>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        self.execute(args, Some(dir))
-    }
-
-    fn execute_here<I, S>(&self, args: I) -> anyhow::Result<Output>
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        self.execute(args, None)
-    }
-
-    fn execute_and_log<I, S>(&self, args: I, dir: Option<&Path>)
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        match self.execute(args, dir) {
-            Ok(Output {
-                status,
-                stdout,
-                stderr,
-            }) => {
-                let stdout = String::from_utf8_lossy(&stdout);
-                let stderr = String::from_utf8_lossy(&stderr);
-
-                if status.success() {
-                    info!("{}", stdout);
-                    info!("{}", stderr);
-                } else {
-                    error!("{}", stdout);
-                    error!("{}", stderr);
-                }
-            }
-            Err(error) => error!("{}", error),
-        }
-    }
-
-    fn execute_and_log_in<I, S>(&self, args: I, dir: &Path)
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        self.execute_and_log(args, Some(dir));
-    }
-
-    fn execute_and_log_here<I, S>(&self, args: I)
-    where
-        I: IntoIterator<Item = S>,
-        S: AsRef<OsStr>,
-    {
-        self.execute_and_log(args, None);
     }
 }

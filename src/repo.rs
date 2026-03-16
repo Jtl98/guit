@@ -1,5 +1,6 @@
 use crate::{
     common::{Branches, DatedLogs, Diff, Diffs, Log},
+    execute::GitExecutor,
     git::Git,
 };
 use std::{cmp::Reverse, path::PathBuf};
@@ -14,7 +15,7 @@ pub struct Repo {
 }
 
 impl Repo {
-    pub fn new(git: &Git, dir: PathBuf) -> anyhow::Result<Self> {
+    pub fn new(git: &Git<GitExecutor>, dir: PathBuf) -> anyhow::Result<Self> {
         let diffs = git
             .diff_name_only()?
             .into_iter()
@@ -45,8 +46,8 @@ impl Repo {
         })
     }
 
-    pub fn load_logs(&mut self, git: &Git) -> anyhow::Result<()> {
-        let skip = self.logs_skipped + Git::LOG_MAX_COUNT;
+    pub fn load_logs(&mut self, git: &Git<GitExecutor>) -> anyhow::Result<()> {
+        let skip = self.logs_skipped + Git::<GitExecutor>::LOG_MAX_COUNT;
         let logs = git.log(skip)?;
         self.logs_skipped += logs.len();
 

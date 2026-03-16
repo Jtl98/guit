@@ -8,6 +8,7 @@ use crate::{
         },
     },
     config::Config,
+    execute::GitExecutor,
     git::Git,
     panels::{
         Show, app_logs::AppLogsPanel, bottom::BottomPanel, diff::DiffPanel, git_logs::GitLogs,
@@ -30,7 +31,7 @@ pub struct App {
     config: Config,
     is_executing: bool,
     show_logs: bool,
-    git: Arc<Git>,
+    git: Arc<Git<GitExecutor>>,
     repo: Option<Arc<RwLock<Repo>>>,
     selected_key: Option<DiffKey>,
     commit_message: Option<String>,
@@ -188,7 +189,7 @@ impl App {
         Ok(())
     }
 
-    fn refresh(git: &Git, repo: &RwLock<Repo>) {
+    fn refresh(git: &Git<GitExecutor>, repo: &RwLock<Repo>) {
         let dir = repo.read().unwrap().dir.clone();
         match Repo::new(git, dir) {
             Ok(new_repo) => *repo.write().unwrap() = new_repo,
