@@ -37,15 +37,8 @@ where
         "%s"
     );
 
-    pub fn add_or_restore(&self, key: &DiffKey) {
-        match key.area {
-            DiffArea::Untracked | DiffArea::Unstaged => {
-                self.executor.execute_and_log_here(["add", &key.path])
-            }
-            DiffArea::Staged => self
-                .executor
-                .execute_and_log_here(["restore", "--staged", &key.path]),
-        }
+    pub fn add(&self, path: &str) {
+        self.executor.execute_and_log_here(["add", path]);
     }
 
     pub fn branch(&self) -> anyhow::Result<HashSet<String>> {
@@ -191,6 +184,11 @@ where
     pub fn reset_soft_head_1(&self) {
         self.executor
             .execute_and_log_here(["reset", "--soft", "HEAD~1"]);
+    }
+
+    pub fn restore_staged(&self, path: &str) {
+        self.executor
+            .execute_and_log_here(["restore", "--staged", path]);
     }
 
     pub fn rev_parse_show_toplevel(&self, dir: &Path) -> anyhow::Result<PathBuf> {
