@@ -1,6 +1,6 @@
 use crate::{
     common::{
-        Action, DiffArea, DiffKey,
+        Action, Branch, BranchArea, DiffArea, DiffKey,
         FileAction::{self, Close, Init, Open, OpenRecent, RemoveRecent},
         RepoAction::{
             self, AddOrRestore, Commit, Create, Fetch, LoadLogs, Pull, Push, Refresh, Stash,
@@ -142,8 +142,12 @@ impl App {
                 git.commit(&message);
                 Self::refresh(&git, &repo);
             }),
-            Switch(branch) => Box::new(move || {
-                git.switch(&branch);
+            Switch(Branch { name, area }) => Box::new(move || {
+                match area {
+                    BranchArea::Local => git.switch(&name),
+                    BranchArea::Remote(remote) => git.switch_create_remote(&name, &remote),
+                }
+
                 Self::refresh(&git, &repo);
             }),
             Create(name) => Box::new(move || {
