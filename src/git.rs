@@ -4,7 +4,6 @@ use crate::{
 };
 use anyhow::anyhow;
 use std::{
-    collections::HashSet,
     fs,
     path::{Path, PathBuf},
     process::Output,
@@ -41,12 +40,12 @@ where
         self.executor.execute_and_log_here(["add", path]);
     }
 
-    pub fn branch(&self) -> anyhow::Result<HashSet<String>> {
+    pub fn branch(&self) -> anyhow::Result<Vec<String>> {
         let Output { stdout, .. } = self.executor.execute_here(["branch"])?;
         Ok(common::split_by_newline(&stdout))
     }
 
-    pub fn branch_remotes(&self) -> anyhow::Result<HashSet<String>> {
+    pub fn branch_remotes(&self) -> anyhow::Result<Vec<String>> {
         let Output { stdout, .. } = self.executor.execute_here(["branch", "--remotes"])?;
         Ok(common::split_by_newline(&stdout))
     }
@@ -176,7 +175,7 @@ where
         self.executor.execute_and_log_here(["push"]);
     }
 
-    pub fn remote(&self) -> anyhow::Result<HashSet<String>> {
+    pub fn remote(&self) -> anyhow::Result<Vec<String>> {
         let Output { stdout, .. } = self.executor.execute_here(["remote"])?;
         Ok(common::split_by_newline(&stdout))
     }
