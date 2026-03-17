@@ -55,21 +55,8 @@ where
             .execute_and_log_here(["commit", "-m", message]);
     }
 
-    pub fn diff(&self, DiffKey { path, area }: &DiffKey) -> anyhow::Result<String> {
-        let Output { stdout, .. } = match area {
-            DiffArea::Untracked => return Ok(fs::read_to_string(path)?),
-            DiffArea::Unstaged => self.executor.execute_here(["diff", path]),
-            DiffArea::Staged => self.executor.execute_here(["diff", "--staged", path]),
-        }?;
-        let header_end = stdout
-            .iter()
-            .enumerate()
-            .filter(|(_, byte)| **byte == b'\n')
-            .map(|(i, _)| i)
-            .nth(3)
-            .map_or(0, |i| i + 1);
-
-        Ok(String::from_utf8_lossy(&stdout[header_end..]).to_string())
+    pub fn diff(&self, path: &str) -> anyhow::Result<Output> {
+        self.executor.execute_here(["diff", path])
     }
 
     pub fn diff_name_only(&self) -> anyhow::Result<Vec<DiffKey>> {
@@ -122,6 +109,10 @@ where
             additions,
             deletions,
         })
+    }
+
+    pub fn diff_staged(&self, path: &str) -> anyhow::Result<Output> {
+        self.executor.execute_here(["diff", "--staged", path])
     }
 
     pub fn fetch_all(&self) {

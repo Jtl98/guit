@@ -1,9 +1,9 @@
 use crate::{
-    common::{Branch, BranchArea, Branches, DatedLogs, Diff, Diffs, Log},
+    common::{Branch, BranchArea, Branches, DatedLogs, Diff, DiffArea, Diffs, Log},
     execute::GitExecutor,
     git::Git,
 };
-use std::{cmp::Reverse, collections::BTreeSet, path::PathBuf};
+use std::{cmp::Reverse, collections::BTreeSet, fs, path::PathBuf, process::Output};
 
 #[derive(Default)]
 pub struct Repo {
@@ -16,17 +16,7 @@ pub struct Repo {
 
 impl Repo {
     pub fn new(git: &Git<GitExecutor>, dir: PathBuf) -> anyhow::Result<Self> {
-        let diffs = git
-            .diff_name_only()?
-            .into_iter()
-            .map(|key| {
-                let content = git.diff(&key)?;
-                let numstat = git.diff_numstat(&key)?;
-                let diff = Diff { content, numstat };
-
-                Ok((key, diff))
-            })
-            .collect::<anyhow::Result<Diffs>>()?;
+        let diffs = Self::diffs(git)?;
         let branches = Self::branches(git)?;
         let logs_skipped = 0;
         let dated_logs =
@@ -99,5 +89,43 @@ impl Repo {
         }
 
         Ok(Branches { current, other })
+    }
+
+    fn diffs(git: &Git<GitExecutor>) -> anyhow::Result<Diffs> {
+        let mut diffs = Diffs::new();
+
+        for key in git.diff_name_only()? {
+            let content = match key.area {
+                DiffArea::Untracked => fs::read_to_string(&key.path)?,
+                DiffArea::Unstaged => {
+                    let Output { stdout, .. } = git.diff(&key.path)?;
+                    Self::strip_diff_header(&stdout)
+                }
+                DiffArea::Staged => {
+                    let Output { stdout, .. } = git.diff_staged(&key.path)?;
+                    Self::strip_diff_header(&stdout)
+                }
+            };
+
+            let numstat = git.diff_numstat(&key)?;
+            let diff = Diff { content, numstat };
+
+            diffs.insert(key, diff);
+        }
+
+        Ok(diffs)
+    }
+
+    fn strip_diff_header(stdout: &[u8]) -> String {
+        let header_end = stdout
+            .iter()
+            .enumerate()
+            .filter(|(_, byte)| **byte == b'\n')
+            .map(|(i, _)| i)
+            .nth(3)
+            .map_or(0, |i| i + 1);
+        let diff = &stdout[header_end..];
+
+        String::from_utf8_lossy(diff).to_string()
     }
 }
