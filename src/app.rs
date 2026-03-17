@@ -1,6 +1,6 @@
 use crate::{
     common::{
-        Action, DiffKey,
+        Action, DiffArea, DiffKey,
         FileAction::{self, Close, Init, Open, OpenRecent, RemoveRecent},
         RepoAction::{
             self, AddOrRestore, Commit, Create, Fetch, LoadLogs, Pull, Push, Refresh, Stash,
@@ -130,8 +130,12 @@ impl App {
                 Self::refresh(&git, &repo);
             }),
             Refresh => Box::new(move || Self::refresh(&git, &repo)),
-            AddOrRestore(key) => Box::new(move || {
-                git.add_or_restore(&key);
+            AddOrRestore(DiffKey { path, area }) => Box::new(move || {
+                match area {
+                    DiffArea::Untracked | DiffArea::Unstaged => git.add(&path),
+                    DiffArea::Staged => git.restore_staged(&path),
+                }
+
                 Self::refresh(&git, &repo);
             }),
             Commit(message) => Box::new(move || {
