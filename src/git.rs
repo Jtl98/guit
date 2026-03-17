@@ -1,5 +1,5 @@
 use crate::{
-    common::{self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Log},
+    common::{self, DiffArea, DiffKey, DiffNumstat, Log},
     execute::Execute,
 };
 use anyhow::anyhow;
@@ -196,21 +196,18 @@ where
             .execute_and_log_here(["stash", "push", "--include-untracked"]);
     }
 
-    pub fn switch(&self, branch: &Branch) {
-        let Branch { name, area } = branch;
-
-        match area {
-            BranchArea::Local => self.executor.execute_and_log_here(["switch", name]),
-            BranchArea::Remote(remote) => {
-                let start_point = format!("{remote}/{name}");
-                self.executor
-                    .execute_and_log_here(["switch", "--create", name, &start_point])
-            }
-        }
+    pub fn switch(&self, branch: &str) {
+        self.executor.execute_and_log_here(["switch", branch]);
     }
 
-    pub fn switch_create(&self, name: &str) {
+    pub fn switch_create(&self, branch: &str) {
         self.executor
-            .execute_and_log_here(["switch", "--create", name]);
+            .execute_and_log_here(["switch", "--create", branch]);
+    }
+
+    pub fn switch_create_remote(&self, branch: &str, remote: &str) {
+        let start_point = format!("{remote}/{branch}");
+        self.executor
+            .execute_and_log_here(["switch", "--create", branch, &start_point]);
     }
 }
