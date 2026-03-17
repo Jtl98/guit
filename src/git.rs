@@ -1,10 +1,9 @@
 use crate::{
-    common::{self, DiffArea, DiffKey, DiffNumstat, Log},
+    common::{self, DiffNumstat, Log},
     execute::Execute,
 };
 use anyhow::anyhow;
 use std::{
-    fs,
     path::{Path, PathBuf},
     process::Output,
 };
@@ -71,31 +70,16 @@ where
         Ok(common::split_by_newline(&stdout))
     }
 
-    pub fn diff_numstat(&self, DiffKey { path, area }: &DiffKey) -> anyhow::Result<DiffNumstat> {
-        let Output { stdout, .. } = match area {
-            DiffArea::Untracked => {
-                let lines = fs::read_to_string(path)?.lines().count();
+    pub fn diff_numstat(&self, path: &str) -> anyhow::Result<DiffNumstat> {
+        let Output { stdout, .. } = self.executor.execute_here(["diff", "--numstat", path])?;
+        self.create_numstat(&stdout)
+    }
 
-                return Ok(DiffNumstat {
-                    additions: lines.to_string(),
-                    deletions: "0".to_owned(),
-                });
-            }
-            DiffArea::Unstaged => self.executor.execute_here(["diff", "--numstat", path])?,
-            DiffArea::Staged => {
-                self.executor
-                    .execute_here(["diff", "--staged", "--numstat", path])?
-            }
-        };
-        let numstat: [String; 2] = common::split_whitespace_take::<Vec<String>>(&stdout, 2)
-            .try_into()
-            .map_err(|_| anyhow!("diff_numstat split failed"))?;
-        let [additions, deletions] = numstat;
-
-        Ok(DiffNumstat {
-            additions,
-            deletions,
-        })
+    pub fn diff_numstat_staged(&self, path: &str) -> anyhow::Result<DiffNumstat> {
+        let Output { stdout, .. } =
+            self.executor
+                .execute_here(["diff", "--numstat", "--staged", path])?;
+        self.create_numstat(&stdout)
     }
 
     pub fn diff_staged(&self, path: &str) -> anyhow::Result<Output> {
@@ -203,5 +187,17 @@ where
         let start_point = format!("{remote}/{branch}");
         self.executor
             .execute_and_log_here(["switch", "--create", branch, &start_point]);
+    }
+
+    fn create_numstat(&self, stdout: &[u8]) -> anyhow::Result<DiffNumstat> {
+        let numstat: [String; 2] = common::split_whitespace_take::<Vec<String>>(stdout, 2)
+            .try_into()
+            .map_err(|_| anyhow!("create_numstat split failed"))?;
+        let [additions, deletions] = numstat;
+
+        Ok(DiffNumstat {
+            additions,
+            deletions,
+        })
     }
 }
