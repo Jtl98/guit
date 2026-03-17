@@ -1,9 +1,9 @@
 use crate::{
-    common::{Branches, DatedLogs, Diff, Diffs, Log},
+    common::{Branch, BranchArea, Branches, DatedLogs, Diff, Diffs, Log},
     execute::GitExecutor,
     git::Git,
 };
-use std::{cmp::Reverse, path::PathBuf};
+use std::{cmp::Reverse, collections::BTreeSet, path::PathBuf};
 
 #[derive(Default)]
 pub struct Repo {
@@ -27,7 +27,7 @@ impl Repo {
                 Ok((key, diff))
             })
             .collect::<anyhow::Result<Diffs>>()?;
-        let branches = git.branches()?;
+        let branches = Self::branches(git)?;
         let logs_skipped = 0;
         let dated_logs =
             git.log(logs_skipped)?
@@ -61,5 +61,43 @@ impl Repo {
     fn add_log(logs: &mut DatedLogs, log: Log) {
         let date = Reverse(log.short_date.clone());
         logs.entry(date).or_default().push(log);
+    }
+
+    fn branches(git: &Git<GitExecutor>) -> anyhow::Result<Branches> {
+        let local_branches = git.branch()?;
+        let remote_branches = git.branch_remotes()?;
+        let remotes = git.remote()?;
+
+        let mut current = String::new();
+        let mut other = BTreeSet::new();
+
+        for branch in &local_branches {
+            let trimmed = branch[2..].to_owned();
+
+            if branch.starts_with("* ") {
+                current = trimmed;
+            } else {
+                other.insert(Branch {
+                    name: trimmed,
+                    area: BranchArea::Local,
+                });
+            }
+        }
+
+        for branch in &remote_branches {
+            for remote in &remotes {
+                if let Some(name) = branch.strip_prefix(&format!("  {remote}/"))
+                    && !name.contains(' ')
+                    && name != current
+                {
+                    other.insert(Branch {
+                        name: name.to_owned(),
+                        area: BranchArea::Remote(remote.to_owned()),
+                    });
+                }
+            }
+        }
+
+        Ok(Branches { current, other })
     }
 }

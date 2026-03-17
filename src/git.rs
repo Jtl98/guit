@@ -1,10 +1,10 @@
 use crate::{
-    common::{self, Branch, BranchArea, Branches, DiffArea, DiffKey, DiffNumstat, Log},
+    common::{self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Log},
     execute::Execute,
 };
 use anyhow::anyhow;
 use std::{
-    collections::{BTreeSet, HashSet},
+    collections::HashSet,
     fs,
     path::{Path, PathBuf},
     process::Output,
@@ -48,42 +48,14 @@ where
         }
     }
 
-    pub fn branches(&self) -> anyhow::Result<Branches> {
-        let local_branches = self.branch()?;
-        let remote_branches = self.branch_remotes()?;
-        let remotes = self.remote()?;
+    pub fn branch(&self) -> anyhow::Result<HashSet<String>> {
+        let Output { stdout, .. } = self.executor.execute_here(["branch"])?;
+        Ok(common::split_by_newline(&stdout))
+    }
 
-        let mut current = String::new();
-        let mut other = BTreeSet::new();
-
-        for branch in &local_branches {
-            let trimmed = branch[2..].to_owned();
-
-            if branch.starts_with("* ") {
-                current = trimmed;
-            } else {
-                other.insert(Branch {
-                    name: trimmed,
-                    area: BranchArea::Local,
-                });
-            }
-        }
-
-        for branch in &remote_branches {
-            for remote in &remotes {
-                if let Some(name) = branch.strip_prefix(&format!("  {remote}/"))
-                    && !name.contains(' ')
-                    && name != current
-                {
-                    other.insert(Branch {
-                        name: name.to_owned(),
-                        area: BranchArea::Remote(remote.to_owned()),
-                    });
-                }
-            }
-        }
-
-        Ok(Branches { current, other })
+    pub fn branch_remotes(&self) -> anyhow::Result<HashSet<String>> {
+        let Output { stdout, .. } = self.executor.execute_here(["branch", "--remotes"])?;
+        Ok(common::split_by_newline(&stdout))
     }
 
     pub fn commit(&self, message: &str) {
@@ -211,6 +183,11 @@ where
         self.executor.execute_and_log_here(["push"]);
     }
 
+    pub fn remote(&self) -> anyhow::Result<HashSet<String>> {
+        let Output { stdout, .. } = self.executor.execute_here(["remote"])?;
+        Ok(common::split_by_newline(&stdout))
+    }
+
     pub fn reset_soft_head_1(&self) {
         self.executor
             .execute_and_log_here(["reset", "--soft", "HEAD~1"]);
@@ -247,20 +224,5 @@ where
     pub fn switch_create(&self, name: &str) {
         self.executor
             .execute_and_log_here(["switch", "--create", name]);
-    }
-
-    fn branch(&self) -> anyhow::Result<HashSet<String>> {
-        let Output { stdout, .. } = self.executor.execute_here(["branch"])?;
-        Ok(common::split_by_newline(&stdout))
-    }
-
-    fn branch_remotes(&self) -> anyhow::Result<HashSet<String>> {
-        let Output { stdout, .. } = self.executor.execute_here(["branch", "--remotes"])?;
-        Ok(common::split_by_newline(&stdout))
-    }
-
-    fn remote(&self) -> anyhow::Result<HashSet<String>> {
-        let Output { stdout, .. } = self.executor.execute_here(["remote"])?;
-        Ok(common::split_by_newline(&stdout))
     }
 }
