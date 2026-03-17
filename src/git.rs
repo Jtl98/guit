@@ -59,29 +59,16 @@ where
         self.executor.execute_here(["diff", path])
     }
 
-    pub fn diff_name_only(&self) -> anyhow::Result<Vec<DiffKey>> {
-        let create_keys = |stdout, area| -> Vec<DiffKey> {
-            common::split_by_newline::<Vec<String>>(stdout)
-                .into_iter()
-                .map(|path| DiffKey { path, area })
-                .collect()
-        };
+    pub fn diff_name_only(&self) -> anyhow::Result<Vec<String>> {
+        let Output { stdout, .. } = self.executor.execute_here(["diff", "--name-only"])?;
+        Ok(common::split_by_newline(&stdout))
+    }
 
-        let untracked_stdout = self
-            .executor
-            .execute_here(["ls-files", "--others", "--exclude-standard"])?
-            .stdout;
-        let unstaged_stdout = self.executor.execute_here(["diff", "--name-only"])?.stdout;
-        let staged_stdout = self
-            .executor
-            .execute_here(["diff", "--staged", "--name-only"])?
-            .stdout;
-
-        let mut keys = create_keys(&untracked_stdout, DiffArea::Untracked);
-        keys.extend(create_keys(&unstaged_stdout, DiffArea::Unstaged));
-        keys.extend(create_keys(&staged_stdout, DiffArea::Staged));
-
-        Ok(keys)
+    pub fn diff_name_only_staged(&self) -> anyhow::Result<Vec<String>> {
+        let Output { stdout, .. } =
+            self.executor
+                .execute_here(["diff", "--name-only", "--staged"])?;
+        Ok(common::split_by_newline(&stdout))
     }
 
     pub fn diff_numstat(&self, DiffKey { path, area }: &DiffKey) -> anyhow::Result<DiffNumstat> {
@@ -156,6 +143,13 @@ where
             .collect();
 
         Ok(logs)
+    }
+
+    pub fn ls_files_others_exclude_standard(&self) -> anyhow::Result<Vec<String>> {
+        let Output { stdout, .. } =
+            self.executor
+                .execute_here(["ls-files", "--others", "--exclude-standard"])?;
+        Ok(common::split_by_newline(&stdout))
     }
 
     pub fn pull(&self) {
