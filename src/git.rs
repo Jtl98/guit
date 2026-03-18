@@ -170,6 +170,21 @@ where
             .execute_and_log_here(["switch", "--create", branch, &start_point]);
     }
 
+    fn parse_diff(&self, stdout: &[u8]) -> String {
+        String::from_utf8_lossy(stdout)
+            .lines()
+            .skip(4)
+            .collect::<Vec<&str>>()
+            .join("\n")
+    }
+
+    fn parse_diff_keys(&self, stdout: &[u8], area: DiffArea) -> Vec<DiffKey> {
+        common::split_by_newline::<Vec<String>>(stdout)
+            .into_iter()
+            .map(|path| DiffKey { path, area })
+            .collect()
+    }
+
     fn parse_local_branches(&self, stdout: &[u8]) -> (String, BTreeSet<Branch>) {
         let mut current = String::new();
         let mut other = BTreeSet::new();
@@ -189,13 +204,6 @@ where
         }
 
         (current, other)
-    }
-
-    fn parse_diff_keys(&self, stdout: &[u8], area: DiffArea) -> Vec<DiffKey> {
-        common::split_by_newline::<Vec<String>>(stdout)
-            .into_iter()
-            .map(|path| DiffKey { path, area })
-            .collect()
     }
 
     fn parse_logs(&self, stdout: &[u8]) -> Vec<Log> {
@@ -230,14 +238,6 @@ where
             deletions,
         })
     }
-
-    fn parse_diff(&self, stdout: &[u8]) -> String {
-        String::from_utf8_lossy(stdout)
-            .lines()
-            .skip(4)
-            .collect::<Vec<&str>>()
-            .join("\n")
-    }
 }
 
 #[cfg(test)]
@@ -247,6 +247,63 @@ mod tests {
 
     fn create_git() -> Git<MockExecutor> {
         Git::<MockExecutor>::default()
+    }
+
+    #[test]
+    fn parse_diff_strips_header_unix() {
+        let git = create_git();
+        let stdout = b"diff --git a/file.txt b/file.txt\n\
+                       index 12345678..abcdef01 100644\n\
+                       --- a/file.txt\n\
+                       +++ b/file.txt\n\
+                       @@ -1 +1 @@\n\
+                       -old\n\
+                       +new\n";
+        let result = git.parse_diff(stdout);
+
+        assert_eq!(result, "@@ -1 +1 @@\n-old\n+new");
+    }
+
+    #[test]
+    fn parse_diff_strips_header_windows() {
+        let git = create_git();
+        let stdout = b"diff --git a/file.txt b/file.txt\r\n\
+                       index 12345678..abcdef01 100644\r\n\
+                       --- a/file.txt\r\n\
+                       +++ b/file.txt\r\n\
+                       @@ -1 +1 @@\r\n\
+                       -old\r\n\
+                       +new\r\n";
+        let result = git.parse_diff(stdout);
+
+        assert_eq!(result, "@@ -1 +1 @@\n-old\n+new");
+    }
+
+    #[test]
+    fn parse_diff_fewer_than_four_lines() {
+        let git = create_git();
+        let stdout = b"only one line\n";
+        let result = git.parse_diff(stdout);
+
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn parse_diff_exactly_four_lines() {
+        let git = create_git();
+        let stdout = b"line1\nline2\nline3\nline4\n";
+        let result = git.parse_diff(stdout);
+
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn parse_diff_empty() {
+        let git = create_git();
+        let stdout = b"";
+        let result = git.parse_diff(stdout);
+
+        assert_eq!(result, "");
     }
 
     #[test]
@@ -355,62 +412,5 @@ mod tests {
             ];
             assert_eq!(keys, expected);
         }
-    }
-
-    #[test]
-    fn parse_diff_strips_header_unix() {
-        let git = create_git();
-        let stdout = b"diff --git a/file.txt b/file.txt\n\
-                       index 12345678..abcdef01 100644\n\
-                       --- a/file.txt\n\
-                       +++ b/file.txt\n\
-                       @@ -1 +1 @@\n\
-                       -old\n\
-                       +new\n";
-        let result = git.parse_diff(stdout);
-
-        assert_eq!(result, "@@ -1 +1 @@\n-old\n+new");
-    }
-
-    #[test]
-    fn parse_diff_strips_header_windows() {
-        let git = create_git();
-        let stdout = b"diff --git a/file.txt b/file.txt\r\n\
-                       index 12345678..abcdef01 100644\r\n\
-                       --- a/file.txt\r\n\
-                       +++ b/file.txt\r\n\
-                       @@ -1 +1 @@\r\n\
-                       -old\r\n\
-                       +new\r\n";
-        let result = git.parse_diff(stdout);
-
-        assert_eq!(result, "@@ -1 +1 @@\n-old\n+new");
-    }
-
-    #[test]
-    fn parse_diff_fewer_than_four_lines() {
-        let git = create_git();
-        let stdout = b"only one line\n";
-        let result = git.parse_diff(stdout);
-
-        assert_eq!(result, "");
-    }
-
-    #[test]
-    fn parse_diff_exactly_four_lines() {
-        let git = create_git();
-        let stdout = b"line1\nline2\nline3\nline4\n";
-        let result = git.parse_diff(stdout);
-
-        assert_eq!(result, "");
-    }
-
-    #[test]
-    fn parse_diff_empty() {
-        let git = create_git();
-        let stdout = b"";
-        let result = git.parse_diff(stdout);
-
-        assert_eq!(result, "");
     }
 }
