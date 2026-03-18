@@ -1,7 +1,5 @@
 use crate::{
-    common::{
-        Branch, BranchArea, Branches, DatedLogs, Diff, DiffArea, DiffKey, DiffNumstat, Diffs, Log,
-    },
+    common::{Branch, BranchArea, Branches, DatedLogs, Diff, DiffArea, DiffNumstat, Diffs, Log},
     execute::GitExecutor,
     git::Git,
 };
@@ -95,14 +93,14 @@ impl Repo {
 
     fn diffs(git: &Git<GitExecutor>) -> anyhow::Result<Diffs> {
         let mut diffs = Diffs::new();
-        let untracked_paths = git.ls_files_others_exclude_standard()?;
-        let unstaged_paths = git.diff_name_only()?;
-        let staged_paths = git.diff_name_only_staged()?;
+        let untracked_keys = git.ls_files_others_exclude_standard()?;
+        let unstaged_keys = git.diff_name_only()?;
+        let staged_keys = git.diff_name_only_staged()?;
 
-        let keys = Self::paths_to_keys(untracked_paths, DiffArea::Untracked)
+        let keys = untracked_keys
             .into_iter()
-            .chain(Self::paths_to_keys(unstaged_paths, DiffArea::Unstaged))
-            .chain(Self::paths_to_keys(staged_paths, DiffArea::Staged));
+            .chain(unstaged_keys)
+            .chain(staged_keys);
 
         for key in keys {
             let diff = match key.area {
@@ -136,13 +134,6 @@ impl Repo {
         }
 
         Ok(diffs)
-    }
-
-    fn paths_to_keys(paths: Vec<String>, area: DiffArea) -> Vec<DiffKey> {
-        paths
-            .into_iter()
-            .map(|path| DiffKey { path, area })
-            .collect()
     }
 
     fn strip_diff_header(stdout: &[u8]) -> String {
