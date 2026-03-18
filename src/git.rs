@@ -208,3 +208,121 @@ where
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::execute::tests::MockExecutor;
+
+    fn create_git() -> Git<MockExecutor> {
+        Git::<MockExecutor>::default()
+    }
+
+    #[test]
+    fn create_diff_keys_empty_stdout() {
+        let git = create_git();
+        let stdout = b"";
+        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
+            let keys = git.create_diff_keys(stdout, area);
+
+            assert!(keys.is_empty());
+        }
+    }
+
+    #[test]
+    fn create_diff_keys_single_path() {
+        let git = create_git();
+        let stdout = b"src/main.rs\n";
+        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
+            let keys = git.create_diff_keys(stdout, area);
+
+            let expected = vec![DiffKey {
+                path: "src/main.rs".to_string(),
+                area,
+            }];
+            assert_eq!(keys, expected);
+        }
+    }
+
+    #[test]
+    fn create_diff_keys_multiple_paths() {
+        let git = create_git();
+        let stdout = b"src/main.rs\nsrc/lib.rs\nCargo.toml\n";
+        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
+            let keys = git.create_diff_keys(stdout, area);
+
+            let expected = vec![
+                DiffKey {
+                    path: "src/main.rs".to_string(),
+                    area,
+                },
+                DiffKey {
+                    path: "src/lib.rs".to_string(),
+                    area,
+                },
+                DiffKey {
+                    path: "Cargo.toml".to_string(),
+                    area,
+                },
+            ];
+            assert_eq!(keys, expected);
+        }
+    }
+
+    #[test]
+    fn create_diff_keys_path_with_spaces() {
+        let git = create_git();
+        let stdout = b"my file.txt\n";
+        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
+            let keys = git.create_diff_keys(stdout, area);
+
+            let expected = vec![DiffKey {
+                path: "my file.txt".to_string(),
+                area,
+            }];
+            assert_eq!(keys, expected);
+        }
+    }
+
+    #[test]
+    fn create_diff_keys_ignores_empty_lines() {
+        let git = create_git();
+        let stdout = b"src/main.rs\n\n\nsrc/lib.rs\n";
+        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
+            let keys = git.create_diff_keys(stdout, area);
+
+            let expected = vec![
+                DiffKey {
+                    path: "src/main.rs".to_string(),
+                    area,
+                },
+                DiffKey {
+                    path: "src/lib.rs".to_string(),
+                    area,
+                },
+            ];
+            assert_eq!(keys, expected);
+        }
+    }
+
+    #[test]
+    fn create_diff_keys_unicode_paths() {
+        let git = create_git();
+        let stdout = "src/日本語.rs\nsrc/é.txt\n".as_bytes();
+        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
+            let keys = git.create_diff_keys(stdout, area);
+
+            let expected = vec![
+                DiffKey {
+                    path: "src/日本語.rs".to_string(),
+                    area,
+                },
+                DiffKey {
+                    path: "src/é.txt".to_string(),
+                    area,
+                },
+            ];
+            assert_eq!(keys, expected);
+        }
+    }
+}

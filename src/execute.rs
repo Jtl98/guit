@@ -89,3 +89,26 @@ impl Execute for GitExecutor {
         Ok(command.output()?)
     }
 }
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+    use std::process::ExitStatus;
+
+    #[derive(Default)]
+    pub struct MockExecutor;
+
+    impl Execute for MockExecutor {
+        fn execute<I, S>(&self, _args: I, _dir: Option<&Path>) -> anyhow::Result<Output>
+        where
+            I: IntoIterator<Item = S>,
+            S: AsRef<OsStr>,
+        {
+            Ok(Output {
+                status: ExitStatus::default(),
+                stdout: Vec::new(),
+                stderr: Vec::new(),
+            })
+        }
+    }
+}
