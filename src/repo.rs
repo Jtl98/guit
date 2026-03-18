@@ -19,13 +19,13 @@ impl Repo {
         let diffs = Self::diffs(git)?;
         let branches = Self::branches(git)?;
         let logs_skipped = 0;
-        let dated_logs =
-            git.log(logs_skipped)?
-                .into_iter()
-                .fold(DatedLogs::new(), |mut logs, log| {
-                    Self::add_log(&mut logs, log);
-                    logs
-                });
+        let dated_logs = git.log_max_count_skip(logs_skipped)?.into_iter().fold(
+            DatedLogs::new(),
+            |mut logs, log| {
+                Self::add_log(&mut logs, log);
+                logs
+            },
+        );
 
         Ok(Self {
             dir,
@@ -38,7 +38,7 @@ impl Repo {
 
     pub fn load_logs(&mut self, git: &Git<GitExecutor>) -> anyhow::Result<()> {
         let skip = self.logs_skipped + Git::<GitExecutor>::LOG_MAX_COUNT;
-        let logs = git.log(skip)?;
+        let logs = git.log_max_count_skip(skip)?;
         self.logs_skipped += logs.len();
 
         for log in logs {
