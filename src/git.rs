@@ -1,5 +1,5 @@
 use crate::{
-    common::{self, DiffNumstat, Log},
+    common::{self, DiffArea, DiffKey, DiffNumstat, Log},
     execute::Execute,
 };
 use anyhow::anyhow;
@@ -58,16 +58,16 @@ where
         self.executor.execute_here(["diff", path])
     }
 
-    pub fn diff_name_only(&self) -> anyhow::Result<Vec<String>> {
+    pub fn diff_name_only(&self) -> anyhow::Result<Vec<DiffKey>> {
         let Output { stdout, .. } = self.executor.execute_here(["diff", "--name-only"])?;
-        Ok(common::split_by_newline(&stdout))
+        Ok(self.create_diff_keys(&stdout, DiffArea::Unstaged))
     }
 
-    pub fn diff_name_only_staged(&self) -> anyhow::Result<Vec<String>> {
+    pub fn diff_name_only_staged(&self) -> anyhow::Result<Vec<DiffKey>> {
         let Output { stdout, .. } =
             self.executor
                 .execute_here(["diff", "--name-only", "--staged"])?;
-        Ok(common::split_by_newline(&stdout))
+        Ok(self.create_diff_keys(&stdout, DiffArea::Staged))
     }
 
     pub fn diff_numstat(&self, path: &str) -> anyhow::Result<DiffNumstat> {
@@ -129,11 +129,11 @@ where
         Ok(logs)
     }
 
-    pub fn ls_files_others_exclude_standard(&self) -> anyhow::Result<Vec<String>> {
+    pub fn ls_files_others_exclude_standard(&self) -> anyhow::Result<Vec<DiffKey>> {
         let Output { stdout, .. } =
             self.executor
                 .execute_here(["ls-files", "--others", "--exclude-standard"])?;
-        Ok(common::split_by_newline(&stdout))
+        Ok(self.create_diff_keys(&stdout, DiffArea::Untracked))
     }
 
     pub fn pull(&self) {
@@ -187,6 +187,13 @@ where
         let start_point = format!("{remote}/{branch}");
         self.executor
             .execute_and_log_here(["switch", "--create", branch, &start_point]);
+    }
+
+    fn create_diff_keys(&self, stdout: &[u8], area: DiffArea) -> Vec<DiffKey> {
+        common::split_by_newline::<Vec<String>>(stdout)
+            .into_iter()
+            .map(|path| DiffKey { path, area })
+            .collect()
     }
 
     fn create_numstat(&self, stdout: &[u8]) -> anyhow::Result<DiffNumstat> {
