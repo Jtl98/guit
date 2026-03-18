@@ -3,7 +3,7 @@ use crate::{
     execute::GitExecutor,
     git::Git,
 };
-use std::{cmp::Reverse, collections::BTreeSet, fs, path::PathBuf, process::Output};
+use std::{cmp::Reverse, fs, path::PathBuf, process::Output};
 
 #[derive(Default)]
 pub struct Repo {
@@ -54,25 +54,11 @@ impl Repo {
     }
 
     fn branches(git: &Git<GitExecutor>) -> anyhow::Result<Branches> {
-        let local_branches = git.branch()?;
+        let (current, local_branches) = git.branch()?;
         let remote_branches = git.branch_remotes()?;
         let remotes = git.remote()?;
 
-        let mut current = String::new();
-        let mut other = BTreeSet::new();
-
-        for branch in &local_branches {
-            let trimmed = branch[2..].to_owned();
-
-            if branch.starts_with("* ") {
-                current = trimmed;
-            } else {
-                other.insert(Branch {
-                    name: trimmed,
-                    area: BranchArea::Local,
-                });
-            }
-        }
+        let mut other = local_branches;
 
         for branch in &remote_branches {
             for remote in &remotes {
