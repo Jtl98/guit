@@ -42,7 +42,7 @@ where
 
     pub fn branch(&self) -> anyhow::Result<(String, BTreeSet<Branch>)> {
         let Output { stdout, .. } = self.executor.execute_here(["branch"])?;
-        Ok(self.create_local_branches(&stdout))
+        Ok(self.parse_local_branches(&stdout))
     }
 
     pub fn branch_remotes(&self) -> anyhow::Result<Vec<String>> {
@@ -61,26 +61,26 @@ where
 
     pub fn diff_name_only(&self) -> anyhow::Result<Vec<DiffKey>> {
         let Output { stdout, .. } = self.executor.execute_here(["diff", "--name-only"])?;
-        Ok(self.create_diff_keys(&stdout, DiffArea::Unstaged))
+        Ok(self.parse_diff_keys(&stdout, DiffArea::Unstaged))
     }
 
     pub fn diff_name_only_staged(&self) -> anyhow::Result<Vec<DiffKey>> {
         let Output { stdout, .. } =
             self.executor
                 .execute_here(["diff", "--name-only", "--staged"])?;
-        Ok(self.create_diff_keys(&stdout, DiffArea::Staged))
+        Ok(self.parse_diff_keys(&stdout, DiffArea::Staged))
     }
 
     pub fn diff_numstat(&self, path: &str) -> anyhow::Result<DiffNumstat> {
         let Output { stdout, .. } = self.executor.execute_here(["diff", "--numstat", path])?;
-        self.create_numstat(&stdout)
+        self.parse_numstat(&stdout)
     }
 
     pub fn diff_numstat_staged(&self, path: &str) -> anyhow::Result<DiffNumstat> {
         let Output { stdout, .. } =
             self.executor
                 .execute_here(["diff", "--numstat", "--staged", path])?;
-        self.create_numstat(&stdout)
+        self.parse_numstat(&stdout)
     }
 
     pub fn diff_staged(&self, path: &str) -> anyhow::Result<Output> {
@@ -106,14 +106,14 @@ where
             Self::LOG_FORMAT,
         ])?;
 
-        Ok(self.create_logs(&stdout))
+        Ok(self.parse_logs(&stdout))
     }
 
     pub fn ls_files_others_exclude_standard(&self) -> anyhow::Result<Vec<DiffKey>> {
         let Output { stdout, .. } =
             self.executor
                 .execute_here(["ls-files", "--others", "--exclude-standard"])?;
-        Ok(self.create_diff_keys(&stdout, DiffArea::Untracked))
+        Ok(self.parse_diff_keys(&stdout, DiffArea::Untracked))
     }
 
     pub fn pull(&self) {
@@ -169,7 +169,7 @@ where
             .execute_and_log_here(["switch", "--create", branch, &start_point]);
     }
 
-    fn create_local_branches(&self, stdout: &[u8]) -> (String, BTreeSet<Branch>) {
+    fn parse_local_branches(&self, stdout: &[u8]) -> (String, BTreeSet<Branch>) {
         let mut current = String::new();
         let mut other = BTreeSet::new();
 
@@ -190,14 +190,14 @@ where
         (current, other)
     }
 
-    fn create_diff_keys(&self, stdout: &[u8], area: DiffArea) -> Vec<DiffKey> {
+    fn parse_diff_keys(&self, stdout: &[u8], area: DiffArea) -> Vec<DiffKey> {
         common::split_by_newline::<Vec<String>>(stdout)
             .into_iter()
             .map(|path| DiffKey { path, area })
             .collect()
     }
 
-    fn create_logs(&self, stdout: &[u8]) -> Vec<Log> {
+    fn parse_logs(&self, stdout: &[u8]) -> Vec<Log> {
         common::split_by_newline::<Vec<String>>(stdout)
             .into_iter()
             .filter_map(|log| {
@@ -221,10 +221,10 @@ where
             .collect()
     }
 
-    fn create_numstat(&self, stdout: &[u8]) -> anyhow::Result<DiffNumstat> {
+    fn parse_numstat(&self, stdout: &[u8]) -> anyhow::Result<DiffNumstat> {
         let numstat: [String; 2] = common::split_whitespace_take::<Vec<String>>(stdout, 2)
             .try_into()
-            .map_err(|_| anyhow!("create_numstat split failed"))?;
+            .map_err(|_| anyhow!("parse_numstat failed"))?;
         let [additions, deletions] = numstat;
 
         Ok(DiffNumstat {
@@ -244,22 +244,22 @@ mod tests {
     }
 
     #[test]
-    fn create_diff_keys_empty_stdout() {
+    fn parse_diff_keys_empty_stdout() {
         let git = create_git();
         let stdout = b"";
         for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.create_diff_keys(stdout, area);
+            let keys = git.parse_diff_keys(stdout, area);
 
             assert!(keys.is_empty());
         }
     }
 
     #[test]
-    fn create_diff_keys_single_path() {
+    fn parse_diff_keys_single_path() {
         let git = create_git();
         let stdout = b"src/main.rs\n";
         for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.create_diff_keys(stdout, area);
+            let keys = git.parse_diff_keys(stdout, area);
 
             let expected = vec![DiffKey {
                 path: "src/main.rs".to_string(),
@@ -270,11 +270,11 @@ mod tests {
     }
 
     #[test]
-    fn create_diff_keys_multiple_paths() {
+    fn parse_diff_keys_multiple_paths() {
         let git = create_git();
         let stdout = b"src/main.rs\nsrc/lib.rs\nCargo.toml\n";
         for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.create_diff_keys(stdout, area);
+            let keys = git.parse_diff_keys(stdout, area);
 
             let expected = vec![
                 DiffKey {
@@ -295,11 +295,11 @@ mod tests {
     }
 
     #[test]
-    fn create_diff_keys_path_with_spaces() {
+    fn parse_diff_keys_path_with_spaces() {
         let git = create_git();
         let stdout = b"my file.txt\n";
         for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.create_diff_keys(stdout, area);
+            let keys = git.parse_diff_keys(stdout, area);
 
             let expected = vec![DiffKey {
                 path: "my file.txt".to_string(),
@@ -310,11 +310,11 @@ mod tests {
     }
 
     #[test]
-    fn create_diff_keys_ignores_empty_lines() {
+    fn parse_diff_keys_ignores_empty_lines() {
         let git = create_git();
         let stdout = b"src/main.rs\n\n\nsrc/lib.rs\n";
         for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.create_diff_keys(stdout, area);
+            let keys = git.parse_diff_keys(stdout, area);
 
             let expected = vec![
                 DiffKey {
@@ -331,11 +331,11 @@ mod tests {
     }
 
     #[test]
-    fn create_diff_keys_unicode_paths() {
+    fn parse_diff_keys_unicode_paths() {
         let git = create_git();
         let stdout = "src/日本語.rs\nsrc/é.txt\n".as_bytes();
         for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.create_diff_keys(stdout, area);
+            let keys = git.parse_diff_keys(stdout, area);
 
             let expected = vec![
                 DiffKey {
