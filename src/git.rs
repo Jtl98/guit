@@ -1,9 +1,10 @@
 use crate::{
-    common::{self, DiffArea, DiffKey, DiffNumstat, Log},
+    common::{self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Log},
     execute::Execute,
 };
 use anyhow::anyhow;
 use std::{
+    collections::BTreeSet,
     path::{Path, PathBuf},
     process::Output,
 };
@@ -39,9 +40,9 @@ where
         self.executor.execute_and_log_here(["add", path]);
     }
 
-    pub fn branch(&self) -> anyhow::Result<Vec<String>> {
+    pub fn branch(&self) -> anyhow::Result<(String, BTreeSet<Branch>)> {
         let Output { stdout, .. } = self.executor.execute_here(["branch"])?;
-        Ok(common::split_by_newline(&stdout))
+        Ok(self.create_local_branches(&stdout))
     }
 
     pub fn branch_remotes(&self) -> anyhow::Result<Vec<String>> {
@@ -166,6 +167,27 @@ where
         let start_point = format!("{remote}/{branch}");
         self.executor
             .execute_and_log_here(["switch", "--create", branch, &start_point]);
+    }
+
+    fn create_local_branches(&self, stdout: &[u8]) -> (String, BTreeSet<Branch>) {
+        let mut current = String::new();
+        let mut other = BTreeSet::new();
+
+        let branches = common::split_by_newline::<Vec<String>>(stdout);
+        for branch in branches {
+            let name = branch[2..].to_owned();
+
+            if branch.starts_with("* ") {
+                current = name;
+            } else {
+                other.insert(Branch {
+                    name,
+                    area: BranchArea::Local,
+                });
+            }
+        }
+
+        (current, other)
     }
 
     fn create_diff_keys(&self, stdout: &[u8], area: DiffArea) -> Vec<DiffKey> {
