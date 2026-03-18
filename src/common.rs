@@ -38,7 +38,7 @@ pub struct Diff {
     pub numstat: DiffNumstat,
 }
 
-#[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct DiffKey {
     pub path: String,
     pub area: DiffArea,
@@ -54,7 +54,7 @@ impl DiffKey {
     }
 }
 
-#[derive(Clone, Copy, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub enum DiffArea {
     Untracked,
     Unstaged,
