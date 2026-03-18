@@ -3,7 +3,7 @@ use crate::{
     execute::GitExecutor,
     git::Git,
 };
-use std::{cmp::Reverse, fs, path::PathBuf, process::Output};
+use std::{cmp::Reverse, fs, path::PathBuf};
 
 #[derive(Default)]
 pub struct Repo {
@@ -101,15 +101,13 @@ impl Repo {
                     Diff { content, numstat }
                 }
                 DiffArea::Unstaged => {
-                    let Output { stdout, .. } = git.diff(&key.path)?;
-                    let content = Self::strip_diff_header(&stdout);
+                    let content = git.diff(&key.path)?;
                     let numstat = git.diff_numstat(&key.path)?;
 
                     Diff { content, numstat }
                 }
                 DiffArea::Staged => {
-                    let Output { stdout, .. } = git.diff_staged(&key.path)?;
-                    let content = Self::strip_diff_header(&stdout);
+                    let content = git.diff_staged(&key.path)?;
                     let numstat = git.diff_numstat_staged(&key.path)?;
 
                     Diff { content, numstat }
@@ -120,18 +118,5 @@ impl Repo {
         }
 
         Ok(diffs)
-    }
-
-    fn strip_diff_header(stdout: &[u8]) -> String {
-        let header_end = stdout
-            .iter()
-            .enumerate()
-            .filter(|(_, byte)| **byte == b'\n')
-            .map(|(i, _)| i)
-            .nth(3)
-            .map_or(0, |i| i + 1);
-        let diff = &stdout[header_end..];
-
-        String::from_utf8_lossy(diff).to_string()
     }
 }
