@@ -95,7 +95,7 @@ where
             .execute_and_log_in(["init", "-b", "main"], dir);
     }
 
-    pub fn log(&self, skip: usize) -> anyhow::Result<Vec<Log>> {
+    pub fn log_max_count_skip(&self, skip: usize) -> anyhow::Result<Vec<Log>> {
         let Output { stdout, .. } = self.executor.execute_here([
             "log",
             "--max-count",
@@ -104,29 +104,8 @@ where
             &skip.to_string(),
             Self::LOG_FORMAT,
         ])?;
-        let logs = common::split_by_newline::<Vec<String>>(&stdout)
-            .into_iter()
-            .filter_map(|log| {
-                let mut parts = log.split('\x1f');
-                let author = parts.next()?.to_owned();
-                let long_date = parts.next()?.to_owned();
-                let short_date = parts.next()?.to_owned();
-                let long_hash = parts.next()?.to_owned();
-                let short_hash = parts.next()?.to_owned();
-                let subject = parts.next()?.to_owned();
 
-                Some(Log {
-                    author,
-                    long_date,
-                    short_date,
-                    long_hash,
-                    short_hash,
-                    subject,
-                })
-            })
-            .collect();
-
-        Ok(logs)
+        Ok(self.create_logs(&stdout))
     }
 
     pub fn ls_files_others_exclude_standard(&self) -> anyhow::Result<Vec<DiffKey>> {
@@ -193,6 +172,30 @@ where
         common::split_by_newline::<Vec<String>>(stdout)
             .into_iter()
             .map(|path| DiffKey { path, area })
+            .collect()
+    }
+
+    fn create_logs(&self, stdout: &[u8]) -> Vec<Log> {
+        common::split_by_newline::<Vec<String>>(stdout)
+            .into_iter()
+            .filter_map(|log| {
+                let mut parts = log.split('\x1f');
+                let author = parts.next()?.to_owned();
+                let long_date = parts.next()?.to_owned();
+                let short_date = parts.next()?.to_owned();
+                let long_hash = parts.next()?.to_owned();
+                let short_hash = parts.next()?.to_owned();
+                let subject = parts.next()?.to_owned();
+
+                Some(Log {
+                    author,
+                    long_date,
+                    short_date,
+                    long_hash,
+                    short_hash,
+                    subject,
+                })
+            })
             .collect()
     }
 
