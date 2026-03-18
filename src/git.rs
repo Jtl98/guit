@@ -2,7 +2,6 @@ use crate::{
     common::{self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Log},
     execute::Execute,
 };
-use anyhow::anyhow;
 use std::{
     collections::BTreeSet,
     path::{Path, PathBuf},
@@ -222,10 +221,7 @@ where
     }
 
     fn parse_numstat(&self, stdout: &[u8]) -> anyhow::Result<DiffNumstat> {
-        let numstat: [String; 2] = common::split_whitespace_take::<Vec<String>>(stdout, 2)
-            .try_into()
-            .map_err(|_| anyhow!("parse_numstat failed"))?;
-        let [additions, deletions] = numstat;
+        let [additions, deletions] = common::split_whitespace_take::<2>(stdout)?;
 
         Ok(DiffNumstat {
             additions,
