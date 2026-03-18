@@ -1,4 +1,5 @@
 use crate::config::RecentRepo;
+use anyhow::anyhow;
 use std::{
     cmp::{Ordering, Reverse},
     collections::{BTreeMap, BTreeSet},
@@ -134,12 +135,14 @@ pub fn split_by_newline<B: FromIterator<String>>(bytes: &[u8]) -> B {
         .collect()
 }
 
-pub fn split_whitespace_take<B: FromIterator<String>>(bytes: &[u8], n: usize) -> B {
+pub fn split_whitespace_take<const N: usize>(bytes: &[u8]) -> anyhow::Result<[String; N]> {
     String::from_utf8_lossy(bytes)
         .split_whitespace()
-        .take(n)
+        .take(N)
         .map(str::to_string)
-        .collect()
+        .collect::<Vec<String>>()
+        .try_into()
+        .map_err(|v: Vec<String>| anyhow!("expected {N} parts, received {}", v.len()))
 }
 
 #[cfg(test)]
@@ -237,133 +240,133 @@ mod tests {
     #[test]
     fn split_whitespace_take_basic() {
         let bytes = b"word1 word2 word3";
-        let result: Vec<String> = split_whitespace_take(bytes, usize::MAX);
-        assert_eq!(result, vec!["word1", "word2", "word3"]);
+        let result = split_whitespace_take::<3>(bytes).unwrap();
+        assert_eq!(result, ["word1", "word2", "word3"]);
     }
 
     #[test]
     fn split_whitespace_take_multiple_spaces() {
         let bytes = b"word1  word2   word3";
-        let result: Vec<String> = split_whitespace_take(bytes, usize::MAX);
-        assert_eq!(result, vec!["word1", "word2", "word3"]);
+        let result = split_whitespace_take::<3>(bytes).unwrap();
+        assert_eq!(result, ["word1", "word2", "word3"]);
     }
 
     #[test]
     fn split_whitespace_take_empty_bytes() {
         let bytes = b"";
-        let result: Vec<String> = split_whitespace_take(bytes, usize::MAX);
-        assert!(result.is_empty());
+        let result = split_whitespace_take::<0>(bytes).unwrap();
+        assert_eq!(result, <[String; 0]>::default());
     }
 
     #[test]
     fn split_whitespace_take_only_whitespace() {
         let bytes = b"   \t\n  ";
-        let result: Vec<String> = split_whitespace_take(bytes, usize::MAX);
-        assert!(result.is_empty());
+        let result = split_whitespace_take::<0>(bytes).unwrap();
+        assert_eq!(result, <[String; 0]>::default());
     }
 
     #[test]
     fn split_whitespace_take_single_word() {
         let bytes = b"word1";
-        let result: Vec<String> = split_whitespace_take(bytes, usize::MAX);
-        assert_eq!(result, vec!["word1"]);
+        let result = split_whitespace_take::<1>(bytes).unwrap();
+        assert_eq!(result, ["word1"]);
     }
 
     #[test]
     fn split_whitespace_take_leading_whitespace() {
         let bytes = b"   word1 word2";
-        let result: Vec<String> = split_whitespace_take(bytes, usize::MAX);
-        assert_eq!(result, vec!["word1", "word2"]);
+        let result = split_whitespace_take::<2>(bytes).unwrap();
+        assert_eq!(result, ["word1", "word2"]);
     }
 
     #[test]
     fn split_whitespace_take_trailing_whitespace() {
         let bytes = b"word1 word2   ";
-        let result: Vec<String> = split_whitespace_take(bytes, usize::MAX);
-        assert_eq!(result, vec!["word1", "word2"]);
+        let result = split_whitespace_take::<2>(bytes).unwrap();
+        assert_eq!(result, ["word1", "word2"]);
     }
 
     #[test]
     fn split_whitespace_take_unicode() {
         let bytes = "función éxito 日本語".as_bytes();
-        let result: Vec<String> = split_whitespace_take(bytes, usize::MAX);
-        assert_eq!(result, vec!["función", "éxito", "日本語"]);
+        let result = split_whitespace_take::<3>(bytes).unwrap();
+        assert_eq!(result, ["función", "éxito", "日本語"]);
     }
 
     #[test]
     fn split_whitespace_take_mixed_whitespace() {
         let bytes = b"word1\tword2\nword3  word4";
-        let result: Vec<String> = split_whitespace_take(bytes, usize::MAX);
-        assert_eq!(result, vec!["word1", "word2", "word3", "word4"]);
+        let result = split_whitespace_take::<4>(bytes).unwrap();
+        assert_eq!(result, ["word1", "word2", "word3", "word4"]);
     }
 
     #[test]
     fn split_whitespace_take_n_zero() {
         let bytes = b"word1 word2 word3";
-        let result: Vec<String> = split_whitespace_take(bytes, 0);
-        assert!(result.is_empty());
+        let result = split_whitespace_take::<0>(bytes).unwrap();
+        assert_eq!(result, <[String; 0]>::default());
     }
 
     #[test]
     fn split_whitespace_take_n_one() {
         let bytes = b"word1 word2 word3";
-        let result: Vec<String> = split_whitespace_take(bytes, 1);
-        assert_eq!(result, vec!["word1"]);
+        let result = split_whitespace_take::<1>(bytes).unwrap();
+        assert_eq!(result, ["word1"]);
     }
 
     #[test]
     fn split_whitespace_take_n_two() {
         let bytes = b"word1 word2 word3 word4";
-        let result: Vec<String> = split_whitespace_take(bytes, 2);
-        assert_eq!(result, vec!["word1", "word2"]);
+        let result = split_whitespace_take::<2>(bytes).unwrap();
+        assert_eq!(result, ["word1", "word2"]);
     }
 
     #[test]
     fn split_whitespace_take_n_exact() {
         let bytes = b"word1 word2 word3";
-        let result: Vec<String> = split_whitespace_take(bytes, 3);
-        assert_eq!(result, vec!["word1", "word2", "word3"]);
+        let result = split_whitespace_take::<3>(bytes).unwrap();
+        assert_eq!(result, ["word1", "word2", "word3"]);
     }
 
     #[test]
     fn split_whitespace_take_n_more_than_available() {
         let bytes = b"word1 word2";
-        let result: Vec<String> = split_whitespace_take(bytes, 5);
-        assert_eq!(result, vec!["word1", "word2"]);
+        let result: Result<[String; 5], _> = split_whitespace_take(bytes);
+        assert!(result.is_err());
     }
 
     #[test]
     fn split_whitespace_take_n_from_empty() {
         let bytes = b"";
-        let result: Vec<String> = split_whitespace_take(bytes, 3);
-        assert!(result.is_empty());
+        let result: Result<[String; 3], _> = split_whitespace_take(bytes);
+        assert!(result.is_err());
     }
 
     #[test]
     fn split_whitespace_take_n_unicode() {
         let bytes = "función éxito 日本語".as_bytes();
-        let result: Vec<String> = split_whitespace_take(bytes, 2);
-        assert_eq!(result, vec!["función", "éxito"]);
+        let result = split_whitespace_take::<2>(bytes).unwrap();
+        assert_eq!(result, ["función", "éxito"]);
     }
 
     #[test]
     fn split_whitespace_take_n_mixed_whitespace_partial() {
         let bytes = b"word1\tword2\nword3  word4\tword5";
-        let result: Vec<String> = split_whitespace_take(bytes, 3);
-        assert_eq!(result, vec!["word1", "word2", "word3"]);
+        let result = split_whitespace_take::<3>(bytes).unwrap();
+        assert_eq!(result, ["word1", "word2", "word3"]);
     }
 
     #[test]
     fn split_whitespace_take_n_leading_whitespace() {
         let bytes = b"   word1 word2 word3";
-        let result: Vec<String> = split_whitespace_take(bytes, 2);
-        assert_eq!(result, vec!["word1", "word2"]);
+        let result = split_whitespace_take::<2>(bytes).unwrap();
+        assert_eq!(result, ["word1", "word2"]);
     }
 
     #[test]
     fn split_whitespace_take_n_trailing_whitespace() {
         let bytes = b"word1 word2 word3   ";
-        let result: Vec<String> = split_whitespace_take(bytes, 2);
-        assert_eq!(result, vec!["word1", "word2"]);
+        let result = split_whitespace_take::<2>(bytes).unwrap();
+        assert_eq!(result, ["word1", "word2"]);
     }
 }
