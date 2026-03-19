@@ -49,9 +49,14 @@ where
         Ok(common::split_by_newline(&stdout))
     }
 
-    pub fn commit(&self, message: &str) {
+    pub fn commit(&self, subject: &str) {
         self.executor
-            .execute_and_log_here(["commit", "-m", message]);
+            .execute_and_log_here(["commit", "-m", subject]);
+    }
+
+    pub fn commit_body(&self, subject: &str, body: &str) {
+        self.executor
+            .execute_and_log_here(["commit", "-m", subject, "-m", body]);
     }
 
     pub fn diff(&self, path: &str) -> anyhow::Result<String> {
