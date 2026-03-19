@@ -34,7 +34,9 @@ pub struct App {
     git: Arc<Git<GitExecutor>>,
     repo: Option<Arc<RwLock<Repo>>>,
     selected_key: Option<DiffKey>,
-    commit_message: Option<String>,
+    commit_subject: Option<String>,
+    commit_body: Option<String>,
+    show_commit_body: bool,
     branch_name: Option<String>,
     branch_search: String,
     logs_scroll_threshold: f32,
@@ -68,7 +70,9 @@ impl App {
             Close => {
                 self.repo = None;
                 self.selected_key = None;
-                self.commit_message = None;
+                self.commit_subject = None;
+                self.commit_body = None;
+                self.show_commit_body = false;
                 self.branch_name = None;
                 self.logs_scroll_threshold = 0.0;
             }
@@ -138,8 +142,15 @@ impl App {
 
                 Self::refresh(&git, &repo);
             }),
-            Commit(message) => Box::new(move || {
-                git.commit(&message);
+            Commit(subject, body) => Box::new(move || {
+                if let Some(body) = body
+                    && !body.trim().is_empty()
+                {
+                    git.commit_body(&subject, &body);
+                } else {
+                    git.commit(&subject);
+                }
+
                 Self::refresh(&git, &repo);
             }),
             Switch(Branch { name, area }) => Box::new(move || {
@@ -226,7 +237,9 @@ impl eframe::App for App {
                 &mut self.show_logs,
                 &repo.dir,
                 &mut self.selected_key,
-                &mut self.commit_message,
+                &mut self.commit_subject,
+                &mut self.commit_body,
+                &mut self.show_commit_body,
             )
             .show(ctx, &mut action);
 
