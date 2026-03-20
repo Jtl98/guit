@@ -57,10 +57,14 @@ impl<'a> Show for GitLogs<'a> {
                                     .on_hover_ui(|ui| {
                                         ui.style_mut().interaction.selectable_labels = true;
 
-                                        let tooltip = format!(
+                                        let mut tooltip = format!(
                                             "author: {}\ndate: {}\nhash: {}",
                                             log.author, log.long_date, log.long_hash
                                         );
+                                        if let Some(body) = &log.body {
+                                            tooltip.push_str(&format!("\nbody: {body}"));
+                                        }
+
                                         ui.label(tooltip);
                                     });
                             }

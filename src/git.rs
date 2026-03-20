@@ -21,6 +21,8 @@ where
     E: Execute,
 {
     pub const LOG_MAX_COUNT: usize = 100;
+    const NULL: u8 = b'\x00';
+    const US: u8 = b'\x1f';
     const LOG_FORMAT: &str = concat!(
         "--format=%an",
         '\x1f',
@@ -32,7 +34,10 @@ where
         '\x1f',
         "%h",
         '\x1f',
-        "%s"
+        "%s",
+        '\x1f',
+        "%b",
+        "%x00"
     );
 
     pub fn add(&self, path: &str) {
@@ -212,24 +217,18 @@ where
     }
 
     fn parse_logs(&self, stdout: &[u8]) -> Vec<Log> {
-        common::split_by_newline::<Vec<String>>(stdout)
-            .into_iter()
+        common::split_by_byte(stdout, Self::NULL)
             .filter_map(|log| {
-                let mut parts = log.split('\x1f');
-                let author = parts.next()?.to_owned();
-                let long_date = parts.next()?.to_owned();
-                let short_date = parts.next()?.to_owned();
-                let long_hash = parts.next()?.to_owned();
-                let short_hash = parts.next()?.to_owned();
-                let subject = parts.next()?.to_owned();
+                let mut parts = common::split_by_byte_to_string(log, Self::US);
 
                 Some(Log {
-                    author,
-                    long_date,
-                    short_date,
-                    long_hash,
-                    short_hash,
-                    subject,
+                    author: parts.next()?,
+                    long_date: parts.next()?,
+                    short_date: parts.next()?,
+                    long_hash: parts.next()?,
+                    short_hash: parts.next()?,
+                    subject: parts.next()?,
+                    body: parts.next(),
                 })
             })
             .collect()
