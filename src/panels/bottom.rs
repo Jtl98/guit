@@ -55,27 +55,29 @@ impl<'a> BottomPanel<'a> {
             *self.show_commit_body = !*self.show_commit_body;
         }
 
-        if *self.show_commit_body {
-            let text_height = ui.text_style_height(&TextStyle::Body);
-            let commit_body = self.commit_body.get_or_insert_default();
+        if !*self.show_commit_body {
+            return;
+        }
 
-            let window = Window::new("commit_body")
-                .title_bar(false)
-                .scroll(true)
-                .fixed_size([Self::COMMIT_BODY_WIDTH, text_height])
-                .anchor(Align2::LEFT_BOTTOM, Self::COMMIT_BODY_OFFSET)
-                .show(ui.ctx(), |ui| {
-                    ui.add_enabled_ui(!self.is_executing, |ui| {
-                        ui.add_sized(ui.available_size(), TextEdit::multiline(commit_body))
-                    })
-                });
+        let text_height = ui.text_style_height(&TextStyle::Body);
+        let commit_body = self.commit_body.get_or_insert_default();
 
-            if clicked
-                && let Some(window) = window
-                && let Some(enabled) = window.inner
-            {
-                enabled.inner.request_focus();
-            }
+        let window = Window::new("commit_body")
+            .title_bar(false)
+            .scroll(true)
+            .fixed_size([Self::COMMIT_BODY_WIDTH, text_height])
+            .anchor(Align2::LEFT_BOTTOM, Self::COMMIT_BODY_OFFSET)
+            .show(ui.ctx(), |ui| {
+                ui.add_enabled_ui(!self.is_executing, |ui| {
+                    ui.add_sized(ui.available_size(), TextEdit::multiline(commit_body))
+                })
+            });
+
+        if clicked
+            && let Some(window) = window
+            && let Some(enabled) = window.inner
+        {
+            enabled.inner.request_focus();
         }
     }
 }
