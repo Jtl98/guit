@@ -165,6 +165,132 @@ mod tests {
     use super::*;
 
     #[test]
+    fn split_by_byte_basic() {
+        let bytes = b"line1,line2,line3";
+        let result: Vec<&[u8]> = split_by_byte(bytes, b',').collect();
+        assert_eq!(result, vec![b"line1", b"line2", b"line3"]);
+    }
+
+    #[test]
+    fn split_by_byte_multiple_delimiters() {
+        let bytes = b"a,,b,,c";
+        let result: Vec<&[u8]> = split_by_byte(bytes, b',').collect();
+        assert_eq!(result, vec![b"a", b"b", b"c"]);
+    }
+
+    #[test]
+    fn split_by_byte_empty_input() {
+        let bytes = b"";
+        let result: Vec<&[u8]> = split_by_byte(bytes, b',').collect();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn split_by_byte_only_delimiter() {
+        let bytes = b",,,";
+        let result: Vec<&[u8]> = split_by_byte(bytes, b',').collect();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn split_by_byte_leading_delimiter() {
+        let bytes = b",line1,line2";
+        let result: Vec<&[u8]> = split_by_byte(bytes, b',').collect();
+        assert_eq!(result, vec![b"line1", b"line2"]);
+    }
+
+    #[test]
+    fn split_by_byte_trailing_delimiter() {
+        let bytes = b"line1,line2,";
+        let result: Vec<&[u8]> = split_by_byte(bytes, b',').collect();
+        assert_eq!(result, vec![b"line1", b"line2"]);
+    }
+
+    #[test]
+    fn split_by_byte_single_element() {
+        let bytes = b"line1";
+        let result: Vec<&[u8]> = split_by_byte(bytes, b',').collect();
+        assert_eq!(result, vec![b"line1"]);
+    }
+
+    #[test]
+    fn split_by_byte_space_delimiter() {
+        let bytes = b"word1 word2 word3";
+        let result: Vec<&[u8]> = split_by_byte(bytes, b' ').collect();
+        assert_eq!(result, vec![b"word1", b"word2", b"word3"]);
+    }
+
+    #[test]
+    fn split_by_byte_trims_whitespace() {
+        let bytes = b"  line1  ,  line2  ";
+        let result: Vec<&[u8]> = split_by_byte(bytes, b',').collect();
+        assert_eq!(result, vec![b"line1", b"line2"]);
+    }
+
+    #[test]
+    fn split_by_byte_unicode() {
+        let bytes = "línea1|línea2|日本語".as_bytes();
+        let result: Vec<&[u8]> = split_by_byte(bytes, b'|').collect();
+        assert_eq!(
+            result,
+            vec![
+                "línea1".as_bytes(),
+                "línea2".as_bytes(),
+                "日本語".as_bytes()
+            ]
+        );
+    }
+
+    #[test]
+    fn split_by_byte_to_string_basic() {
+        let bytes = b"line1,line2,line3";
+        let result: Vec<String> = split_by_byte_to_string(bytes, b',').collect();
+        assert_eq!(result, vec!["line1", "line2", "line3"]);
+    }
+
+    #[test]
+    fn split_by_byte_to_string_empty_input() {
+        let bytes = b"";
+        let result: Vec<String> = split_by_byte_to_string(bytes, b',').collect();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn split_by_byte_to_string_single_element() {
+        let bytes = b"line1";
+        let result: Vec<String> = split_by_byte_to_string(bytes, b',').collect();
+        assert_eq!(result, vec!["line1"]);
+    }
+
+    #[test]
+    fn split_by_byte_to_string_multiple_delimiters() {
+        let bytes = b"a,,b,,c";
+        let result: Vec<String> = split_by_byte_to_string(bytes, b',').collect();
+        assert_eq!(result, vec!["a", "b", "c"]);
+    }
+
+    #[test]
+    fn split_by_byte_to_string_newline() {
+        let bytes = b"line1\nline2\nline3";
+        let result: Vec<String> = split_by_byte_to_string(bytes, b'\n').collect();
+        assert_eq!(result, vec!["line1", "line2", "line3"]);
+    }
+
+    #[test]
+    fn split_by_byte_to_string_trims_whitespace() {
+        let bytes = b"  line1  ,  line2  ";
+        let result: Vec<String> = split_by_byte_to_string(bytes, b',').collect();
+        assert_eq!(result, vec!["line1", "line2"]);
+    }
+
+    #[test]
+    fn split_by_byte_to_string_unicode() {
+        let bytes = "línea1|línea2|日本語".as_bytes();
+        let result: Vec<String> = split_by_byte_to_string(bytes, b'|').collect();
+        assert_eq!(result, vec!["línea1", "línea2", "日本語"]);
+    }
+
+    #[test]
     fn split_by_newline_basic() {
         let bytes = b"line1\nline2\nline3";
         let result: Vec<String> = split_by_newline(bytes);
