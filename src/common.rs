@@ -1,6 +1,7 @@
 use crate::config::RecentRepo;
 use anyhow::anyhow;
 use std::{
+    borrow::Cow,
     cmp::{Ordering, Reverse},
     collections::{BTreeMap, BTreeSet},
     fmt::{self, Display, Formatter},
@@ -125,6 +126,20 @@ pub struct Log {
     pub long_hash: String,
     pub short_hash: String,
     pub subject: String,
+    pub body: Option<String>,
+}
+
+pub fn split_by_byte(bytes: &[u8], byte: u8) -> impl Iterator<Item = &[u8]> {
+    bytes
+        .split(move |&b| b == byte)
+        .map(<[u8]>::trim_ascii)
+        .filter(|b| !b.is_empty())
+}
+
+pub fn split_by_byte_to_string(bytes: &[u8], byte: u8) -> impl Iterator<Item = String> {
+    split_by_byte(bytes, byte)
+        .map(String::from_utf8_lossy)
+        .map(Cow::into_owned)
 }
 
 pub fn split_by_newline<B: FromIterator<String>>(bytes: &[u8]) -> B {
