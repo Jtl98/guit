@@ -80,6 +80,35 @@ impl<'a> BottomPanel<'a> {
             enabled.inner.request_focus();
         }
     }
+
+    fn show_commit_subject(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
+        let commit_subject = self.commit_subject.get_or_insert_default();
+        let commit_subject_provided = !commit_subject.trim().is_empty();
+
+        let text_edit = ui.add_enabled(!self.is_executing, TextEdit::singleline(commit_subject));
+        let button = ui.add_enabled(
+            !self.is_executing && commit_subject_provided,
+            Button::new("commit"),
+        );
+
+        if !commit_subject_provided {
+            return;
+        }
+
+        let key_pressed = text_edit.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
+        if !button.clicked() && !key_pressed {
+            return;
+        }
+
+        let Some(commit_subject) = self.commit_subject.take() else {
+            return;
+        };
+
+        let commit_body = self.commit_body.take();
+        *action = Some(Action::Repo(Commit(commit_subject, commit_body)));
+        *self.selected_key = None;
+        *self.show_commit_body = false;
+    }
 }
 
 impl<'a> Show for BottomPanel<'a> {
@@ -88,25 +117,7 @@ impl<'a> Show for BottomPanel<'a> {
             ui.horizontal(|ui| {
                 self.show_commit_body(ui);
 
-                let commit_subject = self.commit_subject.get_or_insert_default();
-                let commit_subject_provided = !commit_subject.trim().is_empty();
-                let text = ui.add_enabled(!self.is_executing, TextEdit::singleline(commit_subject));
-                let button = ui.add_enabled(
-                    !self.is_executing && commit_subject_provided,
-                    Button::new("commit"),
-                );
-                let key_pressed = text.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
-
-                if commit_subject_provided
-                    && (button.clicked() || key_pressed)
-                    && let Some(commit_subject) = self.commit_subject.take()
-                {
-                    let commit_body = self.commit_body.take();
-
-                    *action = Some(Action::Repo(Commit(commit_subject, commit_body)));
-                    *self.selected_key = None;
-                    *self.show_commit_body = false;
-                }
+                self.show_commit_subject(ui, action);
 
                 let undo_button = ui.add_enabled(!self.is_executing, Button::new("undo"));
                 if undo_button.clicked() {
