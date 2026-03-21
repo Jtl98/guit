@@ -44,6 +44,10 @@ where
         self.executor.execute_and_log_here(["add", path]);
     }
 
+    pub fn add_all(&self) {
+        self.executor.execute_and_log_here(["add", "--all"]);
+    }
+
     pub fn branch(&self) -> anyhow::Result<(String, BTreeSet<Branch>)> {
         let Output { stdout, .. } = self.executor.execute_here(["branch"])?;
         Ok(self.parse_local_branches(&stdout))

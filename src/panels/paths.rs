@@ -1,17 +1,29 @@
 use crate::{
-    common::{Action, DiffKey, Diffs, RepoAction::AddOrRestore},
+    common::{
+        Action, DiffKey, Diffs,
+        RepoAction::{AddAll, AddOrRestore},
+    },
     panels::Show,
 };
-use eframe::egui::{CollapsingHeader, Context, Key, ScrollArea, SidePanel, Ui};
+use eframe::egui::{
+    Align, Button, Context, Key, Layout, ScrollArea, SidePanel, Ui,
+    collapsing_header::CollapsingState,
+};
 
 pub struct PathsPanel<'a> {
+    is_executing: bool,
     diffs: &'a Diffs,
     selected_key: &'a mut Option<DiffKey>,
 }
 
 impl<'a> PathsPanel<'a> {
-    pub fn new(diffs: &'a Diffs, selected_key: &'a mut Option<DiffKey>) -> Self {
+    pub fn new(
+        is_executing: bool,
+        diffs: &'a Diffs,
+        selected_key: &'a mut Option<DiffKey>,
+    ) -> Self {
         Self {
+            is_executing,
             diffs,
             selected_key,
         }
@@ -40,6 +52,50 @@ impl<'a> PathsPanel<'a> {
             }
         }
     }
+
+    fn show_unstaged(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
+        let id = ui.make_persistent_id("unstaged");
+
+        CollapsingState::load_with_default_open(ui.ctx(), id, true)
+            .show_header(ui, |ui| {
+                ui.label("unstaged");
+
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if ui
+                        .add_enabled(!self.is_executing, Button::selectable(false, "+"))
+                        .clicked()
+                    {
+                        *action = Some(Action::Repo(AddAll));
+                    }
+                });
+            })
+            .body(|ui| {
+                let max_scroll_height = ui.available_height() * 0.5;
+
+                ScrollArea::both()
+                    .id_salt("unstaged_scroll")
+                    .max_height(max_scroll_height)
+                    .show(ui, |ui| {
+                        ui.take_available_space();
+                        self.show_keys(ui, action, DiffKey::is_not_staged);
+                    });
+            });
+    }
+
+    fn show_staged(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
+        let id = ui.make_persistent_id("staged");
+
+        CollapsingState::load_with_default_open(ui.ctx(), id, true)
+            .show_header(ui, |ui| {
+                ui.label("staged");
+            })
+            .body(|ui| {
+                ScrollArea::both().id_salt("staged_scroll").show(ui, |ui| {
+                    ui.take_available_space();
+                    self.show_keys(ui, action, DiffKey::is_staged);
+                });
+            });
+    }
 }
 
 impl<'a> Show for PathsPanel<'a> {
@@ -49,30 +105,11 @@ impl<'a> Show for PathsPanel<'a> {
         SidePanel::left("paths")
             .max_width(max_panel_width)
             .show(ctx, |ui| {
-                CollapsingHeader::new("unstaged")
-                    .default_open(true)
-                    .show(ui, |ui| {
-                        let max_scroll_height = ui.available_height() * 0.5;
-
-                        ScrollArea::both()
-                            .id_salt("unstaged_scroll")
-                            .max_height(max_scroll_height)
-                            .show(ui, |ui| {
-                                ui.take_available_space();
-                                self.show_keys(ui, action, DiffKey::is_not_staged);
-                            });
-                    });
+                self.show_unstaged(ui, action);
 
                 ui.separator();
 
-                CollapsingHeader::new("staged")
-                    .default_open(true)
-                    .show(ui, |ui| {
-                        ScrollArea::both().id_salt("staged_scroll").show(ui, |ui| {
-                            ui.take_available_space();
-                            self.show_keys(ui, action, DiffKey::is_staged);
-                        });
-                    });
+                self.show_staged(ui, action);
             });
     }
 }
