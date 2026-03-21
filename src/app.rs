@@ -134,43 +134,50 @@ impl App {
                 Self::refresh(&git, &repo);
             }),
             Refresh => Box::new(move || Self::refresh(&git, &repo)),
-            AddOrRestore(DiffKey { path, area }) => Box::new(move || {
-                match area {
-                    DiffArea::Untracked | DiffArea::Unstaged => git.add(&path),
-                    DiffArea::Staged => git.restore_staged(&path),
-                }
+            AddOrRestore(DiffKey { path, area }) => {
+                self.selected_key = None;
 
-                Self::refresh(&git, &repo);
-            }),
+                Box::new(move || {
+                    match area {
+                        DiffArea::Untracked | DiffArea::Unstaged => git.add(&path),
+                        DiffArea::Staged => git.restore_staged(&path),
+                    }
+
+                    Self::refresh(&git, &repo);
+                })
+            }
             AddAll => {
-                let func = Box::new(move || {
+                self.selected_key = None;
+
+                Box::new(move || {
                     git.add_all();
                     Self::refresh(&git, &repo);
-                });
-
-                self.selected_key = None;
-                func
+                })
             }
             RestoreAll => {
-                let func = Box::new(move || {
+                self.selected_key = None;
+
+                Box::new(move || {
                     git.restore_staged_all();
                     Self::refresh(&git, &repo);
-                });
-
-                self.selected_key = None;
-                func
+                })
             }
-            Commit(subject, body) => Box::new(move || {
-                if let Some(body) = body
-                    && !body.trim().is_empty()
-                {
-                    git.commit_body(&subject, &body);
-                } else {
-                    git.commit(&subject);
-                }
+            Commit(subject, body) => {
+                self.selected_key = None;
+                self.show_commit_body = false;
 
-                Self::refresh(&git, &repo);
-            }),
+                Box::new(move || {
+                    if let Some(body) = body
+                        && !body.trim().is_empty()
+                    {
+                        git.commit_body(&subject, &body);
+                    } else {
+                        git.commit(&subject);
+                    }
+
+                    Self::refresh(&git, &repo);
+                })
+            }
             Switch(Branch { name, area }) => Box::new(move || {
                 match area {
                     BranchArea::Local => git.switch(&name),
@@ -183,11 +190,15 @@ impl App {
                 git.switch_create(&name);
                 Self::refresh(&git, &repo);
             }),
-            LoadLogs => Box::new(move || {
-                if let Err(error) = repo.write().unwrap().load_logs(&git) {
-                    error!("{}", error);
-                }
-            }),
+            LoadLogs(threshold) => {
+                self.logs_scroll_threshold = threshold;
+
+                Box::new(move || {
+                    if let Err(error) = repo.write().unwrap().load_logs(&git) {
+                        error!("{}", error);
+                    }
+                })
+            }
             Stash => Box::new(move || {
                 git.stash_push_include_untracked();
                 Self::refresh(&git, &repo);
@@ -254,7 +265,6 @@ impl eframe::App for App {
                 self.is_executing,
                 &mut self.show_logs,
                 &repo.dir,
-                &mut self.selected_key,
                 &mut self.commit_subject,
                 &mut self.commit_body,
                 &mut self.show_commit_body,
@@ -273,8 +283,7 @@ impl eframe::App for App {
                     DiffPanel::new(diff).show(ctx, &mut action);
                 }
             } else {
-                GitLogs::new(&repo.dated_logs, &mut self.logs_scroll_threshold)
-                    .show(ctx, &mut action);
+                GitLogs::new(&repo.dated_logs, self.logs_scroll_threshold).show(ctx, &mut action);
             }
         } else {
             WelcomePanel::new(&self.config).show(ctx, &mut action);

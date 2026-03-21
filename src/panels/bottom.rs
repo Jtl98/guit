@@ -1,6 +1,6 @@
 use crate::{
     common::{
-        Action, DiffKey,
+        Action,
         RepoAction::{self, Commit},
     },
     panels::Show,
@@ -15,7 +15,6 @@ pub struct BottomPanel<'a> {
     is_executing: bool,
     show_logs: &'a mut bool,
     dir: &'a Path,
-    selected_key: &'a mut Option<DiffKey>,
     commit_subject: &'a mut Option<String>,
     commit_body: &'a mut Option<String>,
     show_commit_body: &'a mut bool,
@@ -29,7 +28,6 @@ impl<'a> BottomPanel<'a> {
         is_executing: bool,
         show_logs: &'a mut bool,
         dir: &'a Path,
-        selected_key: &'a mut Option<DiffKey>,
         commit_subject: &'a mut Option<String>,
         commit_body: &'a mut Option<String>,
         show_commit_body: &'a mut bool,
@@ -38,7 +36,6 @@ impl<'a> BottomPanel<'a> {
             is_executing,
             show_logs,
             dir,
-            selected_key,
             commit_subject,
             commit_body,
             show_commit_body,
@@ -106,8 +103,6 @@ impl<'a> BottomPanel<'a> {
 
         let commit_body = self.commit_body.take();
         *action = Some(Action::Repo(Commit(commit_subject, commit_body)));
-        *self.selected_key = None;
-        *self.show_commit_body = false;
     }
 }
 

@@ -32,7 +32,7 @@ pub enum RepoAction {
     Commit(String, Option<String>),
     Switch(Branch),
     Create(String),
-    LoadLogs,
+    LoadLogs(f32),
     Stash,
     UndoCommit,
 }
