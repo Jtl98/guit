@@ -4,7 +4,7 @@ use crate::{
         FileAction::{self, Close, Init, Open, OpenRecent, RemoveRecent},
         RepoAction::{
             self, AddAll, AddOrRestore, Commit, Create, Fetch, LoadLogs, Pull, Push, Refresh,
-            Stash, Switch, UndoCommit,
+            RestoreAll, Stash, Switch, UndoCommit,
         },
     },
     config::Config,
@@ -145,6 +145,15 @@ impl App {
             AddAll => {
                 let func = Box::new(move || {
                     git.add_all();
+                    Self::refresh(&git, &repo);
+                });
+
+                self.selected_key = None;
+                func
+            }
+            RestoreAll => {
+                let func = Box::new(move || {
+                    git.restore_staged_all();
                     Self::refresh(&git, &repo);
                 });
 

@@ -28,6 +28,7 @@ pub enum RepoAction {
     Refresh,
     AddOrRestore(DiffKey),
     AddAll,
+    RestoreAll,
     Commit(String, Option<String>),
     Switch(Branch),
     Create(String),
