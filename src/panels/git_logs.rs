@@ -10,13 +10,13 @@ use std::{cmp::Reverse, ops::Range};
 
 pub struct GitLogs<'a> {
     dated_logs: &'a DatedLogs,
-    logs_scroll_threshold: &'a mut f32,
+    logs_scroll_threshold: f32,
 }
 
 impl<'a> GitLogs<'a> {
     const SCROLL_THRESHOLD: f32 = 100.0;
 
-    pub fn new(dated_logs: &'a DatedLogs, logs_scroll_threshold: &'a mut f32) -> Self {
+    pub fn new(dated_logs: &'a DatedLogs, logs_scroll_threshold: f32) -> Self {
         Self {
             dated_logs,
             logs_scroll_threshold,
@@ -85,11 +85,10 @@ impl<'a> Show for GitLogs<'a> {
             let end_threshold = content_size.y + inner_rect.min.y - inner_rect.max.y;
             let custom_threshold = end_threshold - Self::SCROLL_THRESHOLD;
 
-            if offset.y > *self.logs_scroll_threshold && offset.y > custom_threshold {
-                *action = Some(Action::Repo(LoadLogs));
-                // ensures you need to scroll past the current height of the scroll area (i.e. after more logs load)
-                // prevents executing git log when no more are available
-                *self.logs_scroll_threshold = end_threshold;
+            // ensures you need to scroll past the current height of the scroll area (i.e. after more logs load)
+            // prevents executing git log when no more are available
+            if offset.y > self.logs_scroll_threshold && offset.y > custom_threshold {
+                *action = Some(Action::Repo(LoadLogs(end_threshold)));
             }
         });
     }

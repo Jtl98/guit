@@ -41,7 +41,6 @@ impl<'a> PathsPanel<'a> {
 
             if response.double_clicked() || (key_pressed && response.has_focus()) {
                 *action = Some(Action::Repo(AddOrRestore(key.clone())));
-                *self.selected_key = None;
             } else if response.clicked() {
                 *self.selected_key = if checked {
                     None
