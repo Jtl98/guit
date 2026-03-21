@@ -1,7 +1,7 @@
 use crate::{
     common::{
         Action, DiffKey, Diffs,
-        RepoAction::{AddAll, AddOrRestore},
+        RepoAction::{AddAll, AddOrRestore, RestoreAll},
     },
     panels::Show,
 };
@@ -88,6 +88,15 @@ impl<'a> PathsPanel<'a> {
         CollapsingState::load_with_default_open(ui.ctx(), id, true)
             .show_header(ui, |ui| {
                 ui.label("staged");
+
+                ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+                    if ui
+                        .add_enabled(!self.is_executing, Button::selectable(false, "-"))
+                        .clicked()
+                    {
+                        *action = Some(Action::Repo(RestoreAll));
+                    }
+                });
             })
             .body(|ui| {
                 ScrollArea::both().id_salt("staged_scroll").show(ui, |ui| {

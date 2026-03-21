@@ -154,6 +154,11 @@ where
             .execute_and_log_here(["restore", "--staged", path]);
     }
 
+    pub fn restore_staged_all(&self) {
+        self.executor
+            .execute_and_log_here(["restore", "--staged", "."]);
+    }
+
     pub fn rev_parse_show_toplevel(&self, dir: &Path) -> anyhow::Result<PathBuf> {
         let Output { stdout, .. } = self
             .executor
