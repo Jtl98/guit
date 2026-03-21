@@ -3,8 +3,8 @@ use crate::{
         Action, Branch, BranchArea, DiffArea, DiffKey,
         FileAction::{self, Close, Init, Open, OpenRecent, RemoveRecent},
         RepoAction::{
-            self, AddOrRestore, Commit, Create, Fetch, LoadLogs, Pull, Push, Refresh, Stash,
-            Switch, UndoCommit,
+            self, AddAll, AddOrRestore, Commit, Create, Fetch, LoadLogs, Pull, Push, Refresh,
+            Stash, Switch, UndoCommit,
         },
     },
     config::Config,
@@ -112,7 +112,7 @@ impl App {
         }
     }
 
-    fn execute_repo_action(&self, action: RepoAction, ctx: &Context) {
+    fn execute_repo_action(&mut self, action: RepoAction, ctx: &Context) {
         let Some(ref repo) = self.repo else {
             return;
         };
@@ -142,6 +142,15 @@ impl App {
 
                 Self::refresh(&git, &repo);
             }),
+            AddAll => {
+                let func = Box::new(move || {
+                    git.add_all();
+                    Self::refresh(&git, &repo);
+                });
+
+                self.selected_key = None;
+                func
+            }
             Commit(subject, body) => Box::new(move || {
                 if let Some(body) = body
                     && !body.trim().is_empty()
@@ -247,7 +256,8 @@ impl eframe::App for App {
                 AppLogsPanel.show(ctx, &mut action);
             }
 
-            PathsPanel::new(&repo.diffs, &mut self.selected_key).show(ctx, &mut action);
+            PathsPanel::new(self.is_executing, &repo.diffs, &mut self.selected_key)
+                .show(ctx, &mut action);
 
             if let Some(selected_key) = &self.selected_key {
                 if let Some(diff) = repo.diffs.get(selected_key) {
