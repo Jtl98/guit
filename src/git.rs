@@ -41,11 +41,11 @@ where
     );
 
     pub fn add(&self, path: &str) {
-        self.executor.execute_and_log_here(["add", path]);
+        let _ = self.executor.execute_and_log_here(["add", path]);
     }
 
     pub fn add_all(&self) {
-        self.executor.execute_and_log_here(["add", "--all"]);
+        let _ = self.executor.execute_and_log_here(["add", "--all"]);
     }
 
     pub fn branch(&self) -> anyhow::Result<(String, BTreeSet<Branch>)> {
@@ -59,12 +59,14 @@ where
     }
 
     pub fn commit(&self, subject: &str) {
-        self.executor
+        let _ = self
+            .executor
             .execute_and_log_here(["commit", "-m", subject]);
     }
 
     pub fn commit_body(&self, subject: &str, body: &str) {
-        self.executor
+        let _ = self
+            .executor
             .execute_and_log_here(["commit", "-m", subject, "-m", body]);
     }
 
@@ -103,11 +105,12 @@ where
     }
 
     pub fn fetch_all(&self) {
-        self.executor.execute_and_log_here(["fetch", "--all"]);
+        let _ = self.executor.execute_and_log_here(["fetch", "--all"]);
     }
 
     pub fn init(&self, dir: &Path) {
-        self.executor
+        let _ = self
+            .executor
             .execute_and_log_in(["init", "-b", "main"], dir);
     }
 
@@ -132,11 +135,11 @@ where
     }
 
     pub fn pull(&self) {
-        self.executor.execute_and_log_here(["pull"]);
+        let _ = self.executor.execute_and_log_here(["pull"]);
     }
 
     pub fn push(&self) {
-        self.executor.execute_and_log_here(["push"]);
+        let _ = self.executor.execute_and_log_here(["push"]);
     }
 
     pub fn remote(&self) -> anyhow::Result<Vec<String>> {
@@ -145,17 +148,20 @@ where
     }
 
     pub fn reset_soft_head_1(&self) {
-        self.executor
+        let _ = self
+            .executor
             .execute_and_log_here(["reset", "--soft", "HEAD~1"]);
     }
 
     pub fn restore_staged(&self, path: &str) {
-        self.executor
+        let _ = self
+            .executor
             .execute_and_log_here(["restore", "--staged", path]);
     }
 
     pub fn restore_staged_all(&self) {
-        self.executor
+        let _ = self
+            .executor
             .execute_and_log_here(["restore", "--staged", "."]);
     }
 
@@ -170,22 +176,25 @@ where
     }
 
     pub fn stash_push_include_untracked(&self) {
-        self.executor
+        let _ = self
+            .executor
             .execute_and_log_here(["stash", "push", "--include-untracked"]);
     }
 
     pub fn switch(&self, branch: &str) {
-        self.executor.execute_and_log_here(["switch", branch]);
+        let _ = self.executor.execute_and_log_here(["switch", branch]);
     }
 
     pub fn switch_create(&self, branch: &str) {
-        self.executor
+        let _ = self
+            .executor
             .execute_and_log_here(["switch", "--create", branch]);
     }
 
     pub fn switch_create_remote(&self, branch: &str, remote: &str) {
         let start_point = format!("{remote}/{branch}");
-        self.executor
+        let _ = self
+            .executor
             .execute_and_log_here(["switch", "--create", branch, &start_point]);
     }
 
