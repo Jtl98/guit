@@ -27,19 +27,21 @@ pub trait Execute {
         self.execute(args, None)
     }
 
-    fn execute_and_log<I, S>(&self, args: I, dir: Option<&Path>)
+    fn execute_and_log<I, S>(&self, args: I, dir: Option<&Path>) -> anyhow::Result<Output>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        match self.execute(args, dir) {
+        let result = self.execute(args, dir);
+
+        match &result {
             Ok(Output {
                 status,
                 stdout,
                 stderr,
             }) => {
-                let stdout = String::from_utf8_lossy(&stdout);
-                let stderr = String::from_utf8_lossy(&stderr);
+                let stdout = String::from_utf8_lossy(stdout);
+                let stderr = String::from_utf8_lossy(stderr);
 
                 if status.success() {
                     info!("{}", stdout);
@@ -51,22 +53,24 @@ pub trait Execute {
             }
             Err(error) => error!("{}", error),
         }
+
+        result
     }
 
-    fn execute_and_log_in<I, S>(&self, args: I, dir: &Path)
+    fn execute_and_log_in<I, S>(&self, args: I, dir: &Path) -> anyhow::Result<Output>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        self.execute_and_log(args, Some(dir));
+        self.execute_and_log(args, Some(dir))
     }
 
-    fn execute_and_log_here<I, S>(&self, args: I)
+    fn execute_and_log_here<I, S>(&self, args: I) -> anyhow::Result<Output>
     where
         I: IntoIterator<Item = S>,
         S: AsRef<OsStr>,
     {
-        self.execute_and_log(args, None);
+        self.execute_and_log(args, None)
     }
 }
 
