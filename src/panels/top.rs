@@ -12,7 +12,7 @@ pub struct TopPanel<'a> {
     is_executing: &'a bool,
     branches: &'a Branches,
     branch_name: &'a mut Option<String>,
-    branch_search: &'a mut String,
+    branch_filter: &'a mut String,
 }
 
 impl<'a> TopPanel<'a> {
@@ -20,13 +20,13 @@ impl<'a> TopPanel<'a> {
         is_executing: &'a bool,
         branches: &'a Branches,
         branch_name: &'a mut Option<String>,
-        branch_search: &'a mut String,
+        branch_filter: &'a mut String,
     ) -> Self {
         Self {
             is_executing,
             branches,
             branch_name,
-            branch_search,
+            branch_filter,
         }
     }
 
@@ -35,11 +35,11 @@ impl<'a> TopPanel<'a> {
             .selected_text(&self.branches.current)
             .show_ui(ui, |ui| {
                 ui.take_available_height();
-                ui.text_edit_singleline(self.branch_search).request_focus();
+                ui.text_edit_singleline(self.branch_filter).request_focus();
 
+                let branch_filter = self.branch_filter.to_lowercase();
                 for branch in &self.branches.other {
-                    let searched_branch = self.branch_search.to_lowercase();
-                    if !branch.name.to_lowercase().contains(&searched_branch) {
+                    if !branch.name.to_lowercase().contains(&branch_filter) {
                         continue;
                     }
 
@@ -50,7 +50,7 @@ impl<'a> TopPanel<'a> {
             });
 
         if branch_box.response.clicked() {
-            self.branch_search.clear();
+            self.branch_filter.clear();
         }
 
         let branch_name = self.branch_name.get_or_insert_default();
