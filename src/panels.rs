@@ -14,11 +14,11 @@ pub trait Show {
 }
 
 trait AddWidget {
-    fn executing_button(&mut self, is_executing: bool, text: &str) -> Response;
+    fn enabled_button(&mut self, enabled: bool, text: &str) -> Response;
 }
 
 impl AddWidget for Ui {
-    fn executing_button(&mut self, is_executing: bool, text: &str) -> Response {
-        self.add_enabled(!is_executing, Button::new(text))
+    fn enabled_button(&mut self, enabled: bool, text: &str) -> Response {
+        self.add_enabled(enabled, Button::new(text))
     }
 }

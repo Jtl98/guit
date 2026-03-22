@@ -3,11 +3,10 @@ use crate::{
         Action,
         RepoAction::{self, Commit},
     },
-    panels::Show,
+    panels::{AddWidget, Show},
 };
 use eframe::egui::{
-    Align, Align2, Button, Context, Key, Layout, TextEdit, TextStyle, TopBottomPanel, Ui, Vec2,
-    Window,
+    Align, Align2, Context, Key, Layout, TextEdit, TextStyle, TopBottomPanel, Ui, Vec2, Window,
 };
 use std::path::Path;
 
@@ -44,9 +43,7 @@ impl<'a> BottomPanel<'a> {
 
     fn show_commit_body(&mut self, ui: &mut Ui) {
         let arrow = if *self.show_commit_body { "⏶" } else { "⏵" };
-        let clicked = ui
-            .add_enabled(!self.is_executing, Button::new(arrow))
-            .clicked();
+        let clicked = ui.enabled_button(!self.is_executing, arrow).clicked();
 
         if clicked {
             *self.show_commit_body = !*self.show_commit_body;
@@ -83,10 +80,7 @@ impl<'a> BottomPanel<'a> {
         let commit_subject_provided = !commit_subject.trim().is_empty();
 
         let text_edit = ui.add_enabled(!self.is_executing, TextEdit::singleline(commit_subject));
-        let button = ui.add_enabled(
-            !self.is_executing && commit_subject_provided,
-            Button::new("commit"),
-        );
+        let button = ui.enabled_button(!self.is_executing && commit_subject_provided, "commit");
 
         if !commit_subject_provided {
             return;
@@ -114,7 +108,7 @@ impl<'a> Show for BottomPanel<'a> {
 
                 self.show_commit_subject(ui, action);
 
-                let undo_button = ui.add_enabled(!self.is_executing, Button::new("undo"));
+                let undo_button = ui.enabled_button(!self.is_executing, "undo");
                 if undo_button.clicked() {
                     *action = Some(Action::Repo(RepoAction::UndoCommit));
                 }
