@@ -77,30 +77,14 @@ impl<'a> Show for TopPanel<'a> {
     fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
         TopBottomPanel::top("top").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                if ui.enabled_button(!self.is_executing, "refresh").clicked() {
-                    *action = Some(Action::Repo(Refresh));
-                }
-
-                if ui.enabled_button(!self.is_executing, "fetch").clicked() {
-                    *action = Some(Action::Repo(Fetch));
-                }
-
-                if ui.enabled_button(!self.is_executing, "pull").clicked() {
-                    *action = Some(Action::Repo(Pull));
-                }
-
-                if ui.enabled_button(!self.is_executing, "push").clicked() {
-                    *action = Some(Action::Repo(Push));
-                }
-
-                if ui.enabled_button(!self.is_executing, "stash").clicked() {
-                    *action = Some(Action::Repo(Stash));
-                }
+                ui.action_button(!self.is_executing, "refresh", action, Action::Repo(Refresh));
+                ui.action_button(!self.is_executing, "fetch", action, Action::Repo(Fetch));
+                ui.action_button(!self.is_executing, "pull", action, Action::Repo(Pull));
+                ui.action_button(!self.is_executing, "push", action, Action::Repo(Push));
+                ui.action_button(!self.is_executing, "stash", action, Action::Repo(Stash));
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                    if ui.button("close").clicked() {
-                        *action = Some(Action::File(Close));
-                    }
+                    ui.action_button(true, "close", action, Action::File(Close));
 
                     self.show_branches(ui, action);
                 });

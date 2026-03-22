@@ -1,7 +1,7 @@
 use crate::{
     common::{
         Action,
-        RepoAction::{self, Commit},
+        RepoAction::{Commit, UndoCommit},
     },
     panels::{AddWidget, Show},
 };
@@ -108,10 +108,7 @@ impl<'a> Show for BottomPanel<'a> {
 
                 self.show_commit_subject(ui, action);
 
-                let undo_button = ui.enabled_button(!self.is_executing, "undo");
-                if undo_button.clicked() {
-                    *action = Some(Action::Repo(RepoAction::UndoCommit));
-                }
+                ui.action_button(!self.is_executing, "undo", action, Action::Repo(UndoCommit));
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     if ui.selectable_label(*self.show_logs, "logs").clicked() {
