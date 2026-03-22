@@ -6,7 +6,7 @@ use crate::{
     },
     panels::{AddWidget, Show},
 };
-use eframe::egui::{Align, Button, ComboBox, Context, Key, Layout, TextEdit, TopBottomPanel, Ui};
+use eframe::egui::{Align, ComboBox, Context, Key, Layout, TextEdit, TopBottomPanel, Ui};
 
 pub struct TopPanel<'a> {
     is_executing: &'a bool,
@@ -55,7 +55,7 @@ impl<'a> TopPanel<'a> {
 
         let branch_name = self.branch_name.get_or_insert_default();
         let branch_name_provided = !branch_name.trim().is_empty();
-        let button = ui.add_enabled(!self.is_executing && branch_name_provided, Button::new("+"));
+        let button = ui.enabled_button(!self.is_executing && branch_name_provided, "+");
         let text = ui.add_enabled(!self.is_executing, TextEdit::singleline(branch_name));
 
         if !branch_name_provided {
@@ -77,23 +77,23 @@ impl<'a> Show for TopPanel<'a> {
     fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
         TopBottomPanel::top("top").show(ctx, |ui| {
             ui.horizontal(|ui| {
-                if ui.executing_button(*self.is_executing, "refresh").clicked() {
+                if ui.enabled_button(!self.is_executing, "refresh").clicked() {
                     *action = Some(Action::Repo(Refresh));
                 }
 
-                if ui.executing_button(*self.is_executing, "fetch").clicked() {
+                if ui.enabled_button(!self.is_executing, "fetch").clicked() {
                     *action = Some(Action::Repo(Fetch));
                 }
 
-                if ui.executing_button(*self.is_executing, "pull").clicked() {
+                if ui.enabled_button(!self.is_executing, "pull").clicked() {
                     *action = Some(Action::Repo(Pull));
                 }
 
-                if ui.executing_button(*self.is_executing, "push").clicked() {
+                if ui.enabled_button(!self.is_executing, "push").clicked() {
                     *action = Some(Action::Repo(Push));
                 }
 
-                if ui.executing_button(*self.is_executing, "stash").clicked() {
+                if ui.enabled_button(!self.is_executing, "stash").clicked() {
                     *action = Some(Action::Repo(Stash));
                 }
 
