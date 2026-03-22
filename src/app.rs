@@ -38,7 +38,7 @@ pub struct App {
     commit_body: Option<String>,
     show_commit_body: bool,
     branch_name: Option<String>,
-    branch_search: String,
+    branch_filter: String,
     logs_scroll_threshold: f32,
 }
 
@@ -257,7 +257,7 @@ impl eframe::App for App {
                 &self.is_executing,
                 &repo.branches,
                 &mut self.branch_name,
-                &mut self.branch_search,
+                &mut self.branch_filter,
             )
             .show(ctx, &mut action);
 
