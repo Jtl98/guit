@@ -77,10 +77,20 @@ impl<'a> Show for TopPanel<'a> {
     fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
         TopBottomPanel::top("top").show(ctx, |ui| {
             ui.horizontal(|ui| {
+                ui.style_mut().spacing.item_spacing.x = 4.0;
+
                 ui.action_button(!self.is_executing, "refresh", action, Action::Repo(Refresh));
+
+                ui.separator();
                 ui.action_button(!self.is_executing, "fetch", action, Action::Repo(Fetch));
+
+                ui.separator();
                 ui.action_button(!self.is_executing, "pull", action, Action::Repo(Pull));
+
+                ui.separator();
                 ui.action_button(!self.is_executing, "push", action, Action::Repo(Push));
+
+                ui.separator();
                 ui.action_button(!self.is_executing, "stash", action, Action::Repo(Stash));
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
