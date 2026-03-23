@@ -17,6 +17,8 @@ pub struct PathsPanel<'a> {
 }
 
 impl<'a> PathsPanel<'a> {
+    const MIN_PANEL_WIDTH: f32 = 128.0;
+
     pub fn new(
         is_executing: bool,
         diffs: &'a Diffs,
@@ -111,6 +113,7 @@ impl<'a> Show for PathsPanel<'a> {
         let max_panel_width = ctx.content_rect().width() * 0.5;
 
         SidePanel::left("paths")
+            .min_width(Self::MIN_PANEL_WIDTH)
             .max_width(max_panel_width)
             .show(ctx, |ui| {
                 self.show_unstaged(ui, action);
