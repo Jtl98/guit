@@ -175,6 +175,12 @@ where
         Ok(PathBuf::from(lossy))
     }
 
+    pub fn stash_pop_index(&self) {
+        let _ = self
+            .executor
+            .execute_and_log_here(["stash", "pop", "--index"]);
+    }
+
     pub fn stash_push_include_untracked(&self) {
         let _ = self
             .executor

@@ -2,7 +2,7 @@ use crate::{
     common::{
         Action, Branches,
         FileAction::Close,
-        RepoAction::{Create, Fetch, Pull, Push, Refresh, Stash, Switch},
+        RepoAction::{Create, Fetch, Pull, Push, Refresh, StashPop, StashPush, Switch},
     },
     panels::{AddWidget, Show},
 };
@@ -83,15 +83,13 @@ impl<'a> Show for TopPanel<'a> {
 
                 ui.separator();
                 ui.action_button(!self.is_executing, "fetch", action, Action::Repo(Fetch));
-
-                ui.separator();
                 ui.action_button(!self.is_executing, "pull", action, Action::Repo(Pull));
-
-                ui.separator();
                 ui.action_button(!self.is_executing, "push", action, Action::Repo(Push));
 
                 ui.separator();
-                ui.action_button(!self.is_executing, "stash", action, Action::Repo(Stash));
+                ui.label("stash");
+                ui.action_button(!self.is_executing, "push", action, Action::Repo(StashPush));
+                ui.action_button(!self.is_executing, "pop", action, Action::Repo(StashPop));
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     ui.action_button(true, "close", action, Action::File(Close));

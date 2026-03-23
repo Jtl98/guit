@@ -4,7 +4,7 @@ use crate::{
         FileAction::{self, Close, Init, Open, OpenRecent, RemoveRecent},
         RepoAction::{
             self, AddAll, AddOrRestore, Commit, Create, Fetch, LoadLogs, Pull, Push, Refresh,
-            RestoreAll, Stash, Switch, UndoCommit,
+            RestoreAll, StashPop, StashPush, Switch, UndoCommit,
         },
     },
     config::Config,
@@ -199,10 +199,18 @@ impl App {
                     }
                 })
             }
-            Stash => Box::new(move || {
-                git.stash_push_include_untracked();
+            StashPop => Box::new(move || {
+                git.stash_pop_index();
                 Self::refresh(&git, &repo);
             }),
+            StashPush => {
+                self.selected_key = None;
+
+                Box::new(move || {
+                    git.stash_push_include_untracked();
+                    Self::refresh(&git, &repo);
+                })
+            }
             UndoCommit => Box::new(move || {
                 git.reset_soft_head_1();
                 Self::refresh(&git, &repo);
