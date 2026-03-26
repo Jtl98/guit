@@ -1,12 +1,12 @@
 use crate::{
     common::{
-        Action, Branches,
+        Action, Branch, Branches,
         FileAction::Close,
         RepoAction::{Create, Fetch, Pull, Push, Refresh, StashPop, StashPush, Switch},
     },
     panels::{AddWidget, Show},
 };
-use eframe::egui::{Align, ComboBox, Context, Key, Layout, TextEdit, TopBottomPanel, Ui};
+use eframe::egui::{Align, ComboBox, Context, Key, Layout, Popup, TextEdit, TopBottomPanel, Ui};
 
 pub struct TopPanel<'a> {
     is_executing: &'a bool,
@@ -33,29 +33,55 @@ impl<'a> TopPanel<'a> {
     }
 
     fn show_branches(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
+        let mut first_branch = None;
+
         let branch_box = ComboBox::from_id_salt("branches")
             .width(0.0)
             .selected_text(&self.branches.current)
             .show_ui(ui, |ui| {
                 ui.take_available_height();
-                ui.text_edit_singleline(self.branch_filter).request_focus();
 
+                let filter_edit = ui.text_edit_singleline(self.branch_filter);
                 let branch_filter = self.branch_filter.to_lowercase();
-                for branch in &self.branches.other {
-                    if !branch.name.to_lowercase().contains(&branch_filter) {
-                        continue;
-                    }
 
+                let mut filtered_branches = self
+                    .branches
+                    .other
+                    .iter()
+                    .filter(|Branch { name, .. }| name.to_lowercase().contains(&branch_filter))
+                    .peekable();
+
+                first_branch = filtered_branches.peek().copied();
+                for branch in filtered_branches {
                     if ui.selectable_label(false, branch.to_string()).clicked() {
                         *action = Some(Action::Repo(Switch(branch.clone())));
                     }
                 }
+
+                filter_edit
             });
 
+        let Some(filter_edit) = branch_box.inner else {
+            return;
+        };
+
         if branch_box.response.clicked() {
+            filter_edit.request_focus();
             self.branch_filter.clear();
         }
 
+        let Some(first_branch) = first_branch else {
+            return;
+        };
+
+        let key_pressed = filter_edit.lost_focus() && ui.input(|i| i.key_pressed(Key::Enter));
+        if key_pressed {
+            Popup::close_all(ui.ctx());
+            *action = Some(Action::Repo(Switch(first_branch.clone())));
+        }
+    }
+
+    fn show_branch_creation(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
         let branch_name = self.branch_name.get_or_insert_default();
         let branch_name_provided = !branch_name.trim().is_empty();
         let create_text_edit = ui.add_enabled(
@@ -100,6 +126,7 @@ impl<'a> Show for TopPanel<'a> {
                 ui.separator();
                 ui.label("branch");
                 self.show_branches(ui, action);
+                self.show_branch_creation(ui, action);
 
                 ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                     ui.action_button(true, "close", action, Action::File(Close));
