@@ -262,7 +262,7 @@ impl eframe::App for App {
             let repo = repo.read().unwrap();
 
             TopPanel::new(
-                &self.is_executing,
+                self.is_executing,
                 &repo.branches,
                 &mut self.branch_name,
                 &mut self.branch_filter,
