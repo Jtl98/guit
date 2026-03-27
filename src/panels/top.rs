@@ -35,31 +35,37 @@ impl<'a> TopPanel<'a> {
     fn show_branches(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
         let mut first_branch = None;
 
-        let branch_box = ComboBox::from_id_salt("branches")
-            .width(0.0)
-            .selected_text(&self.branches.current)
-            .show_ui(ui, |ui| {
-                ui.take_available_height();
+        let branch_box = ui
+            .add_enabled_ui(!self.is_executing, |ui| {
+                ComboBox::from_id_salt("branches")
+                    .width(0.0)
+                    .selected_text(&self.branches.current)
+                    .show_ui(ui, |ui| {
+                        ui.take_available_height();
 
-                let filter_edit = ui.text_edit_singleline(self.branch_filter);
-                let branch_filter = self.branch_filter.to_lowercase();
+                        let filter_edit = ui.text_edit_singleline(self.branch_filter);
+                        let branch_filter = self.branch_filter.to_lowercase();
 
-                let mut filtered_branches = self
-                    .branches
-                    .other
-                    .iter()
-                    .filter(|Branch { name, .. }| name.to_lowercase().contains(&branch_filter))
-                    .peekable();
+                        let mut filtered_branches = self
+                            .branches
+                            .other
+                            .iter()
+                            .filter(|Branch { name, .. }| {
+                                name.to_lowercase().contains(&branch_filter)
+                            })
+                            .peekable();
 
-                first_branch = filtered_branches.peek().copied();
-                for branch in filtered_branches {
-                    if ui.selectable_label(false, branch.to_string()).clicked() {
-                        *action = Some(Action::Repo(Switch(branch.clone())));
-                    }
-                }
+                        first_branch = filtered_branches.peek().copied();
+                        for branch in filtered_branches {
+                            if ui.selectable_label(false, branch.to_string()).clicked() {
+                                *action = Some(Action::Repo(Switch(branch.clone())));
+                            }
+                        }
 
-                filter_edit
-            });
+                        filter_edit
+                    })
+            })
+            .inner;
 
         let Some(filter_edit) = branch_box.inner else {
             return;
