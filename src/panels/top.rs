@@ -9,7 +9,7 @@ use crate::{
 use eframe::egui::{Align, ComboBox, Context, Key, Layout, Popup, TextEdit, TopBottomPanel, Ui};
 
 pub struct TopPanel<'a> {
-    is_executing: &'a bool,
+    is_executing: bool,
     branches: &'a Branches,
     branch_name: &'a mut Option<String>,
     branch_filter: &'a mut String,
@@ -19,7 +19,7 @@ impl<'a> TopPanel<'a> {
     const CREATE_TEXT_EDIT_WIDTH: f32 = 96.0;
 
     pub fn new(
-        is_executing: &'a bool,
+        is_executing: bool,
         branches: &'a Branches,
         branch_name: &'a mut Option<String>,
         branch_filter: &'a mut String,
