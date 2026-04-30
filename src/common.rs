@@ -38,7 +38,12 @@ pub enum RepoAction {
     UndoCommit,
 }
 
-pub struct Diff {
+pub enum Diff {
+    Binary,
+    String(StringDiff),
+}
+
+pub struct StringDiff {
     pub content: String,
     pub numstat: DiffNumstat,
 }
