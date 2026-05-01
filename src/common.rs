@@ -41,11 +41,22 @@ pub enum RepoAction {
 pub enum Diff {
     Binary,
     String(StringDiff),
+    Hunk(HunkDiff),
 }
 
 pub struct StringDiff {
-    pub content: String,
+    pub lines: Vec<String>,
+}
+
+pub struct HunkDiff {
+    pub hunks: Vec<Hunk>,
     pub numstat: DiffNumstat,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct Hunk {
+    pub header: String,
+    pub lines: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]

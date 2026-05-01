@@ -1,5 +1,5 @@
 use crate::{
-    common::{self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Log},
+    common::{self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Hunk, Log},
     execute::Execute,
 };
 use std::{
@@ -21,6 +21,7 @@ where
     E: Execute,
 {
     pub const LOG_MAX_COUNT: usize = 100;
+    const HUNK_HEADER_PREFIX: &str = "@@";
     const NULL: u8 = b'\x00';
     const US: u8 = b'\x1f';
     const LOG_FORMAT: &str = concat!(
@@ -70,7 +71,7 @@ where
             .execute_and_log_here(["commit", "-m", subject, "-m", body]);
     }
 
-    pub fn diff(&self, path: &str) -> anyhow::Result<String> {
+    pub fn diff(&self, path: &str) -> anyhow::Result<Vec<Hunk>> {
         let Output { stdout, .. } = self.executor.execute_here(["diff", path])?;
         Ok(self.parse_diff(&stdout))
     }
@@ -99,7 +100,7 @@ where
         self.parse_numstat(&stdout)
     }
 
-    pub fn diff_staged(&self, path: &str) -> anyhow::Result<String> {
+    pub fn diff_staged(&self, path: &str) -> anyhow::Result<Vec<Hunk>> {
         let Output { stdout, .. } = self.executor.execute_here(["diff", "--staged", path])?;
         Ok(self.parse_diff(&stdout))
     }
@@ -204,12 +205,32 @@ where
             .execute_and_log_here(["switch", "--create", branch, &start_point]);
     }
 
-    fn parse_diff(&self, stdout: &[u8]) -> String {
-        String::from_utf8_lossy(stdout)
-            .lines()
-            .skip(4)
-            .collect::<Vec<&str>>()
-            .join("\n")
+    fn parse_diff(&self, stdout: &[u8]) -> Vec<Hunk> {
+        let diff = String::from_utf8_lossy(stdout);
+        let lines = diff.lines().skip(4);
+        let mut hunks = Vec::new();
+        let mut current_hunk = None;
+
+        for line in lines {
+            if line.starts_with(Self::HUNK_HEADER_PREFIX) {
+                if let Some(hunk) = current_hunk {
+                    hunks.push(hunk);
+                }
+
+                current_hunk = Some(Hunk {
+                    header: line.to_owned(),
+                    lines: Vec::new(),
+                });
+            } else if let Some(ref mut hunk) = current_hunk {
+                hunk.lines.push(line.to_owned());
+            }
+        }
+
+        if let Some(hunk) = current_hunk {
+            hunks.push(hunk);
+        }
+
+        hunks
     }
 
     fn parse_diff_keys(&self, stdout: &[u8], area: DiffArea) -> Vec<DiffKey> {
@@ -289,7 +310,11 @@ mod tests {
                        +new\n";
         let result = git.parse_diff(stdout);
 
-        assert_eq!(result, "@@ -1 +1 @@\n-old\n+new");
+        let expected = vec![Hunk {
+            header: "@@ -1 +1 @@".to_owned(),
+            lines: vec!["-old".to_owned(), "+new".to_owned()],
+        }];
+        assert_eq!(result, expected);
     }
 
     #[test]
@@ -304,7 +329,11 @@ mod tests {
                        +new\r\n";
         let result = git.parse_diff(stdout);
 
-        assert_eq!(result, "@@ -1 +1 @@\n-old\n+new");
+        let expected = vec![Hunk {
+            header: "@@ -1 +1 @@".to_owned(),
+            lines: vec!["-old".to_owned(), "+new".to_owned()],
+        }];
+        assert_eq!(result, expected);
     }
 
     #[test]
@@ -313,7 +342,7 @@ mod tests {
         let stdout = b"only one line\n";
         let result = git.parse_diff(stdout);
 
-        assert_eq!(result, "");
+        assert_eq!(result, vec![]);
     }
 
     #[test]
@@ -322,7 +351,7 @@ mod tests {
         let stdout = b"line1\nline2\nline3\nline4\n";
         let result = git.parse_diff(stdout);
 
-        assert_eq!(result, "");
+        assert_eq!(result, vec![]);
     }
 
     #[test]
@@ -331,7 +360,7 @@ mod tests {
         let stdout = b"";
         let result = git.parse_diff(stdout);
 
-        assert_eq!(result, "");
+        assert_eq!(result, vec![]);
     }
 
     #[test]
