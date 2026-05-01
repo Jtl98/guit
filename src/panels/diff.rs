@@ -1,5 +1,5 @@
 use crate::{
-    common::{Action, Diff, StringDiff},
+    common::{Action, Diff, DiffNumstat, HunkDiff, StringDiff},
     panels::Show,
 };
 use eframe::egui::{CentralPanel, Color32, Context, Label, RichText, ScrollArea, TextWrapMode, Ui};
@@ -23,8 +23,9 @@ impl<'a> DiffPanel<'a> {
 
     fn show_string(&self, ui: &mut Ui, diff: &StringDiff) {
         ui.horizontal_wrapped(|ui| {
-            ui.colored_label(Color32::GREEN, &diff.numstat.additions);
-            ui.colored_label(Color32::RED, &diff.numstat.deletions);
+            let total_lines = diff.lines.len().to_string();
+
+            ui.label(total_lines);
         });
 
         ui.separator();
@@ -32,19 +33,50 @@ impl<'a> DiffPanel<'a> {
         ScrollArea::both().show(ui, |ui| {
             ui.take_available_space();
 
-            for line in diff.content.lines() {
-                let colour = if line.starts_with('+') {
-                    Color32::GREEN
-                } else if line.starts_with('-') {
-                    Color32::RED
-                } else {
-                    ui.visuals().text_color()
-                };
+            for line in &diff.lines {
+                let text = RichText::new(line).monospace();
+                let label = Label::new(text).wrap_mode(TextWrapMode::Extend);
 
-                ui.add(
-                    Label::new(RichText::new(line).monospace().color(colour))
-                        .wrap_mode(TextWrapMode::Extend),
-                );
+                ui.add(label);
+            }
+        });
+    }
+
+    fn show_hunk(&self, ui: &mut Ui, diff: &HunkDiff) {
+        ui.horizontal_wrapped(|ui| {
+            let DiffNumstat {
+                additions,
+                deletions,
+            } = &diff.numstat;
+
+            ui.colored_label(Color32::GREEN, additions);
+            ui.colored_label(Color32::RED, deletions);
+        });
+
+        ui.separator();
+
+        ScrollArea::both().show(ui, |ui| {
+            ui.take_available_space();
+
+            for hunk in &diff.hunks {
+                let header_text = RichText::new(&hunk.header).monospace().strong();
+                let header_label = Label::new(header_text).wrap_mode(TextWrapMode::Extend);
+
+                ui.add(header_label);
+
+                for line in &hunk.lines {
+                    let line_colour = if line.starts_with('+') {
+                        Color32::GREEN
+                    } else if line.starts_with('-') {
+                        Color32::RED
+                    } else {
+                        ui.visuals().text_color()
+                    };
+                    let line_text = RichText::new(line).monospace().color(line_colour);
+                    let line_label = Label::new(line_text).wrap_mode(TextWrapMode::Extend);
+
+                    ui.add(line_label);
+                }
             }
         });
     }
@@ -55,6 +87,7 @@ impl<'a> Show for DiffPanel<'a> {
         CentralPanel::default().show(ctx, |ui| match self.diff {
             Diff::Binary => self.show_binary(ui),
             Diff::String(diff) => self.show_string(ui, diff),
+            Diff::Hunk(diff) => self.show_hunk(ui, diff),
         });
     }
 }

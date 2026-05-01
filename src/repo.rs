@@ -1,7 +1,6 @@
 use crate::{
     common::{
-        Branch, BranchArea, Branches, DatedLogs, Diff, DiffArea, DiffNumstat, Diffs, Log,
-        StringDiff,
+        Branch, BranchArea, Branches, DatedLogs, Diff, DiffArea, Diffs, HunkDiff, Log, StringDiff,
     },
     execute::GitExecutor,
     git::Git,
@@ -99,29 +98,25 @@ impl Repo {
 
             let diff = match key.area {
                 DiffArea::Untracked => {
-                    let lines = content.lines().count();
-                    let numstat = DiffNumstat {
-                        additions: lines.to_string(),
-                        deletions: "0".to_owned(),
-                    };
+                    let lines = content.lines().map(str::to_owned).collect();
 
-                    StringDiff { content, numstat }
+                    Diff::String(StringDiff { lines })
                 }
                 DiffArea::Unstaged => {
-                    let content = git.diff(&key.path)?;
+                    let hunks = git.diff(&key.path)?;
                     let numstat = git.diff_numstat(&key.path)?;
 
-                    StringDiff { content, numstat }
+                    Diff::Hunk(HunkDiff { hunks, numstat })
                 }
                 DiffArea::Staged => {
-                    let content = git.diff_staged(&key.path)?;
+                    let hunks = git.diff_staged(&key.path)?;
                     let numstat = git.diff_numstat_staged(&key.path)?;
 
-                    StringDiff { content, numstat }
+                    Diff::Hunk(HunkDiff { hunks, numstat })
                 }
             };
 
-            diffs.insert(key, Diff::String(diff));
+            diffs.insert(key, diff);
         }
 
         Ok(diffs)
