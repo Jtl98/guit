@@ -354,4 +354,92 @@ mod tests {
         assert!(current.is_empty());
         assert_eq!(other, expected);
     }
+
+    #[test]
+    fn parse_logs_empty() {
+        let parser = create_parser();
+        let bytes = b"";
+
+        let result = parser.parse_logs(bytes);
+
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn parse_logs_single() {
+        let parser = create_parser();
+        let bytes = b"Jtl98\x1f2024-01-15T10:30:00+00:00\x1f2024-01-15\x1fabc123def456789\x1fabc123\x1ffix bug\x00";
+
+        let result = parser.parse_logs(bytes);
+
+        let expected = vec![Log {
+            author: "Jtl98".to_owned(),
+            long_date: "2024-01-15T10:30:00+00:00".to_owned(),
+            short_date: "2024-01-15".to_owned(),
+            long_hash: "abc123def456789".to_owned(),
+            short_hash: "abc123".to_owned(),
+            subject: "fix bug".to_owned(),
+            body: None,
+        }];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn parse_logs_single_with_body() {
+        let parser = create_parser();
+        let bytes = b"Jtl98\x1f2024-01-15T10:30:00+00:00\x1f2024-01-15\x1fabc123def456789\x1fabc123\x1ffix bug\x1fthis is the body\x00";
+
+        let result = parser.parse_logs(bytes);
+
+        let expected = vec![Log {
+            author: "Jtl98".to_owned(),
+            long_date: "2024-01-15T10:30:00+00:00".to_owned(),
+            short_date: "2024-01-15".to_owned(),
+            long_hash: "abc123def456789".to_owned(),
+            short_hash: "abc123".to_owned(),
+            subject: "fix bug".to_owned(),
+            body: Some("this is the body".to_owned()),
+        }];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn parse_logs_multiple() {
+        let parser = create_parser();
+        let bytes = b"Jtl98\x1f2024-01-15T10:30:00+00:00\x1f2024-01-15\x1fabc123def456789\x1fabc123\x1ffix bug\x00Jtl98\x1f2024-01-14T09:00:00+00:00\x1f2024-01-14\x1fdef456789abc123\x1fdef456\x1fadd feature\x00";
+
+        let result = parser.parse_logs(bytes);
+
+        let expected = vec![
+            Log {
+                author: "Jtl98".to_owned(),
+                long_date: "2024-01-15T10:30:00+00:00".to_owned(),
+                short_date: "2024-01-15".to_owned(),
+                long_hash: "abc123def456789".to_owned(),
+                short_hash: "abc123".to_owned(),
+                subject: "fix bug".to_owned(),
+                body: None,
+            },
+            Log {
+                author: "Jtl98".to_owned(),
+                long_date: "2024-01-14T09:00:00+00:00".to_owned(),
+                short_date: "2024-01-14".to_owned(),
+                long_hash: "def456789abc123".to_owned(),
+                short_hash: "def456".to_owned(),
+                subject: "add feature".to_owned(),
+                body: None,
+            },
+        ];
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn parse_logs_ignores_empty_entries() {
+        let parser = create_parser();
+        let bytes = b"\x00\x00";
+
+        let result = parser.parse_logs(bytes);
+
+        assert!(result.is_empty());
+    }
 }

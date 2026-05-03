@@ -138,6 +138,7 @@ pub type Diffs = BTreeMap<DiffKey, Diff>;
 
 pub type DatedLogs = BTreeMap<Reverse<String>, Vec<Log>>;
 
+#[derive(Debug, PartialEq)]
 pub struct Log {
     pub author: String,
     pub long_date: String,
