@@ -1,6 +1,5 @@
-use std::collections::BTreeSet;
-
 use crate::common::{self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Hunk, Log};
+use std::collections::BTreeSet;
 
 #[derive(Default)]
 pub struct GitParser;
