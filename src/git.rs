@@ -1,6 +1,6 @@
 use crate::{
     common::{self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Hunk, Log},
-    execute::Execute,
+    executor::Execute,
 };
 use std::{
     collections::BTreeSet,
@@ -292,7 +292,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::execute::tests::MockExecutor;
+    use crate::executor::tests::MockExecutor;
 
     fn create_git() -> Git<MockExecutor> {
         Git::<MockExecutor>::default()

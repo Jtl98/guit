@@ -8,7 +8,7 @@ use crate::{
         },
     },
     config::Config,
-    execute::GitExecutor,
+    executor::GitExecutor,
     git::Git,
     panels::{
         Show, app_logs::AppLogsPanel, bottom::BottomPanel, diff::DiffPanel, git_logs::GitLogs,
