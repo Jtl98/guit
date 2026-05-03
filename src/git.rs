@@ -1,6 +1,7 @@
 use crate::{
-    common::{self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Hunk, Log},
-    execute::Execute,
+    common::{self, Branch, DiffArea, DiffKey, DiffNumstat, Hunk, Log},
+    executor::Execute,
+    parser::GitParser,
 };
 use std::{
     collections::BTreeSet,
@@ -14,6 +15,7 @@ where
     E: Execute,
 {
     executor: E,
+    parser: GitParser,
 }
 
 impl<E> Git<E>
@@ -21,9 +23,6 @@ where
     E: Execute,
 {
     pub const LOG_MAX_COUNT: usize = 100;
-    const HUNK_HEADER_PREFIX: &str = "@@";
-    const NULL: u8 = b'\x00';
-    const US: u8 = b'\x1f';
     const LOG_FORMAT: &str = concat!(
         "--format=%an",
         '\x1f',
@@ -51,7 +50,9 @@ where
 
     pub fn branch(&self) -> anyhow::Result<(String, BTreeSet<Branch>)> {
         let Output { stdout, .. } = self.executor.execute_here(["branch"])?;
-        Ok(self.parse_local_branches(&stdout))
+        let branches = self.parser.parse_local_branches(&stdout);
+
+        Ok(branches)
     }
 
     pub fn branch_remotes(&self) -> anyhow::Result<Vec<String>> {
@@ -73,36 +74,46 @@ where
 
     pub fn diff(&self, path: &str) -> anyhow::Result<Vec<Hunk>> {
         let Output { stdout, .. } = self.executor.execute_here(["diff", path])?;
-        Ok(self.parse_diff(&stdout))
+        let hunks = self.parser.parse_hunks(&stdout);
+
+        Ok(hunks)
     }
 
     pub fn diff_name_only(&self) -> anyhow::Result<Vec<DiffKey>> {
         let Output { stdout, .. } = self.executor.execute_here(["diff", "--name-only"])?;
-        Ok(self.parse_diff_keys(&stdout, DiffArea::Unstaged))
+        let keys = self.parser.parse_diff_keys(&stdout, DiffArea::Unstaged);
+
+        Ok(keys)
     }
 
     pub fn diff_name_only_staged(&self) -> anyhow::Result<Vec<DiffKey>> {
         let Output { stdout, .. } =
             self.executor
                 .execute_here(["diff", "--name-only", "--staged"])?;
-        Ok(self.parse_diff_keys(&stdout, DiffArea::Staged))
+        let keys = self.parser.parse_diff_keys(&stdout, DiffArea::Staged);
+
+        Ok(keys)
     }
 
     pub fn diff_numstat(&self, path: &str) -> anyhow::Result<DiffNumstat> {
         let Output { stdout, .. } = self.executor.execute_here(["diff", "--numstat", path])?;
-        self.parse_numstat(&stdout)
+
+        self.parser.parse_numstat(&stdout)
     }
 
     pub fn diff_numstat_staged(&self, path: &str) -> anyhow::Result<DiffNumstat> {
         let Output { stdout, .. } =
             self.executor
                 .execute_here(["diff", "--numstat", "--staged", path])?;
-        self.parse_numstat(&stdout)
+
+        self.parser.parse_numstat(&stdout)
     }
 
     pub fn diff_staged(&self, path: &str) -> anyhow::Result<Vec<Hunk>> {
         let Output { stdout, .. } = self.executor.execute_here(["diff", "--staged", path])?;
-        Ok(self.parse_diff(&stdout))
+        let hunks = self.parser.parse_hunks(&stdout);
+
+        Ok(hunks)
     }
 
     pub fn fetch_all(&self) {
@@ -124,15 +135,18 @@ where
             &skip.to_string(),
             Self::LOG_FORMAT,
         ])?;
+        let logs = self.parser.parse_logs(&stdout);
 
-        Ok(self.parse_logs(&stdout))
+        Ok(logs)
     }
 
     pub fn ls_files_others_exclude_standard(&self) -> anyhow::Result<Vec<DiffKey>> {
         let Output { stdout, .. } =
             self.executor
                 .execute_here(["ls-files", "--others", "--exclude-standard"])?;
-        Ok(self.parse_diff_keys(&stdout, DiffArea::Untracked))
+        let keys = self.parser.parse_diff_keys(&stdout, DiffArea::Untracked);
+
+        Ok(keys)
     }
 
     pub fn pull(&self) {
@@ -203,271 +217,5 @@ where
         let _ = self
             .executor
             .execute_and_log_here(["switch", "--create", branch, &start_point]);
-    }
-
-    fn parse_diff(&self, stdout: &[u8]) -> Vec<Hunk> {
-        let diff = String::from_utf8_lossy(stdout);
-        let lines = diff.lines().skip(4);
-        let mut hunks = Vec::new();
-        let mut current_hunk = None;
-
-        for line in lines {
-            if line.starts_with(Self::HUNK_HEADER_PREFIX) {
-                if let Some(hunk) = current_hunk {
-                    hunks.push(hunk);
-                }
-
-                current_hunk = Some(Hunk {
-                    header: line.to_owned(),
-                    lines: Vec::new(),
-                });
-            } else if let Some(ref mut hunk) = current_hunk {
-                hunk.lines.push(line.to_owned());
-            }
-        }
-
-        if let Some(hunk) = current_hunk {
-            hunks.push(hunk);
-        }
-
-        hunks
-    }
-
-    fn parse_diff_keys(&self, stdout: &[u8], area: DiffArea) -> Vec<DiffKey> {
-        common::split_by_newline::<Vec<String>>(stdout)
-            .into_iter()
-            .map(|path| DiffKey { path, area })
-            .collect()
-    }
-
-    fn parse_local_branches(&self, stdout: &[u8]) -> (String, BTreeSet<Branch>) {
-        let mut current = String::new();
-        let mut other = BTreeSet::new();
-
-        let branches = common::split_by_newline::<Vec<String>>(stdout);
-        for branch in branches {
-            let name = branch[2..].to_owned();
-
-            if branch.starts_with("* ") {
-                current = name;
-            } else {
-                other.insert(Branch {
-                    name,
-                    area: BranchArea::Local,
-                });
-            }
-        }
-
-        (current, other)
-    }
-
-    fn parse_logs(&self, stdout: &[u8]) -> Vec<Log> {
-        common::split_by_byte(stdout, Self::NULL)
-            .filter_map(|log| {
-                let mut parts = common::split_by_byte_to_string(log, Self::US);
-
-                Some(Log {
-                    author: parts.next()?,
-                    long_date: parts.next()?,
-                    short_date: parts.next()?,
-                    long_hash: parts.next()?,
-                    short_hash: parts.next()?,
-                    subject: parts.next()?,
-                    body: parts.next(),
-                })
-            })
-            .collect()
-    }
-
-    fn parse_numstat(&self, stdout: &[u8]) -> anyhow::Result<DiffNumstat> {
-        let [additions, deletions] = common::split_whitespace_take::<2>(stdout)?;
-
-        Ok(DiffNumstat {
-            additions,
-            deletions,
-        })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::execute::tests::MockExecutor;
-
-    fn create_git() -> Git<MockExecutor> {
-        Git::<MockExecutor>::default()
-    }
-
-    #[test]
-    fn parse_diff_strips_header_unix() {
-        let git = create_git();
-        let stdout = b"diff --git a/file.txt b/file.txt\n\
-                       index 12345678..abcdef01 100644\n\
-                       --- a/file.txt\n\
-                       +++ b/file.txt\n\
-                       @@ -1 +1 @@\n\
-                       -old\n\
-                       +new\n";
-        let result = git.parse_diff(stdout);
-
-        let expected = vec![Hunk {
-            header: "@@ -1 +1 @@".to_owned(),
-            lines: vec!["-old".to_owned(), "+new".to_owned()],
-        }];
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn parse_diff_strips_header_windows() {
-        let git = create_git();
-        let stdout = b"diff --git a/file.txt b/file.txt\r\n\
-                       index 12345678..abcdef01 100644\r\n\
-                       --- a/file.txt\r\n\
-                       +++ b/file.txt\r\n\
-                       @@ -1 +1 @@\r\n\
-                       -old\r\n\
-                       +new\r\n";
-        let result = git.parse_diff(stdout);
-
-        let expected = vec![Hunk {
-            header: "@@ -1 +1 @@".to_owned(),
-            lines: vec!["-old".to_owned(), "+new".to_owned()],
-        }];
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn parse_diff_fewer_than_four_lines() {
-        let git = create_git();
-        let stdout = b"only one line\n";
-        let result = git.parse_diff(stdout);
-
-        assert_eq!(result, vec![]);
-    }
-
-    #[test]
-    fn parse_diff_exactly_four_lines() {
-        let git = create_git();
-        let stdout = b"line1\nline2\nline3\nline4\n";
-        let result = git.parse_diff(stdout);
-
-        assert_eq!(result, vec![]);
-    }
-
-    #[test]
-    fn parse_diff_empty() {
-        let git = create_git();
-        let stdout = b"";
-        let result = git.parse_diff(stdout);
-
-        assert_eq!(result, vec![]);
-    }
-
-    #[test]
-    fn parse_diff_keys_empty_stdout() {
-        let git = create_git();
-        let stdout = b"";
-        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.parse_diff_keys(stdout, area);
-
-            assert!(keys.is_empty());
-        }
-    }
-
-    #[test]
-    fn parse_diff_keys_single_path() {
-        let git = create_git();
-        let stdout = b"src/main.rs\n";
-        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.parse_diff_keys(stdout, area);
-
-            let expected = vec![DiffKey {
-                path: "src/main.rs".to_string(),
-                area,
-            }];
-            assert_eq!(keys, expected);
-        }
-    }
-
-    #[test]
-    fn parse_diff_keys_multiple_paths() {
-        let git = create_git();
-        let stdout = b"src/main.rs\nsrc/lib.rs\nCargo.toml\n";
-        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.parse_diff_keys(stdout, area);
-
-            let expected = vec![
-                DiffKey {
-                    path: "src/main.rs".to_string(),
-                    area,
-                },
-                DiffKey {
-                    path: "src/lib.rs".to_string(),
-                    area,
-                },
-                DiffKey {
-                    path: "Cargo.toml".to_string(),
-                    area,
-                },
-            ];
-            assert_eq!(keys, expected);
-        }
-    }
-
-    #[test]
-    fn parse_diff_keys_path_with_spaces() {
-        let git = create_git();
-        let stdout = b"my file.txt\n";
-        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.parse_diff_keys(stdout, area);
-
-            let expected = vec![DiffKey {
-                path: "my file.txt".to_string(),
-                area,
-            }];
-            assert_eq!(keys, expected);
-        }
-    }
-
-    #[test]
-    fn parse_diff_keys_ignores_empty_lines() {
-        let git = create_git();
-        let stdout = b"src/main.rs\n\n\nsrc/lib.rs\n";
-        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.parse_diff_keys(stdout, area);
-
-            let expected = vec![
-                DiffKey {
-                    path: "src/main.rs".to_string(),
-                    area,
-                },
-                DiffKey {
-                    path: "src/lib.rs".to_string(),
-                    area,
-                },
-            ];
-            assert_eq!(keys, expected);
-        }
-    }
-
-    #[test]
-    fn parse_diff_keys_unicode_paths() {
-        let git = create_git();
-        let stdout = "src/日本語.rs\nsrc/é.txt\n".as_bytes();
-        for area in [DiffArea::Untracked, DiffArea::Unstaged, DiffArea::Staged] {
-            let keys = git.parse_diff_keys(stdout, area);
-
-            let expected = vec![
-                DiffKey {
-                    path: "src/日本語.rs".to_string(),
-                    area,
-                },
-                DiffKey {
-                    path: "src/é.txt".to_string(),
-                    area,
-                },
-            ];
-            assert_eq!(keys, expected);
-        }
     }
 }

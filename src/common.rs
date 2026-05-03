@@ -82,6 +82,7 @@ pub enum DiffArea {
     Staged,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct DiffNumstat {
     pub additions: String,
     pub deletions: String,
@@ -93,7 +94,7 @@ pub struct Branches {
     pub other: BTreeSet<Branch>,
 }
 
-#[derive(Clone, Eq)]
+#[derive(Clone, Debug, Eq)]
 pub struct Branch {
     pub name: String,
     pub area: BranchArea,
@@ -128,7 +129,7 @@ impl PartialOrd for Branch {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BranchArea {
     Local,
     Remote(String),
@@ -138,6 +139,7 @@ pub type Diffs = BTreeMap<DiffKey, Diff>;
 
 pub type DatedLogs = BTreeMap<Reverse<String>, Vec<Log>>;
 
+#[derive(Debug, PartialEq)]
 pub struct Log {
     pub author: String,
     pub long_date: String,

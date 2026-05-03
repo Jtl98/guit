@@ -2,7 +2,7 @@ use crate::{
     common::{
         Branch, BranchArea, Branches, DatedLogs, Diff, DiffArea, Diffs, HunkDiff, Log, StringDiff,
     },
-    execute::GitExecutor,
+    executor::GitExecutor,
     git::Git,
 };
 use std::{cmp::Reverse, fs, path::PathBuf};

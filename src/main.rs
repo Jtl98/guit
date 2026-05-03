@@ -1,10 +1,11 @@
 mod app;
 mod common;
 mod config;
-mod execute;
+mod executor;
 mod git;
 mod log;
 mod panels;
+mod parser;
 mod repo;
 
 use crate::app::App;
