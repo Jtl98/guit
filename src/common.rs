@@ -82,6 +82,7 @@ pub enum DiffArea {
     Staged,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct DiffNumstat {
     pub additions: String,
     pub deletions: String,

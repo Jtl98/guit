@@ -442,4 +442,36 @@ mod tests {
 
         assert!(result.is_empty());
     }
+
+    #[test]
+    fn parse_numstat_basic() {
+        let parser = create_parser();
+        let bytes = b"32\t0\tsrc/parser.rs";
+
+        let result = parser.parse_numstat(bytes).unwrap();
+
+        let expected = DiffNumstat {
+            additions: "32".to_owned(),
+            deletions: "0".to_owned(),
+        };
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    #[should_panic]
+    fn parse_numstat_empty() {
+        let parser = create_parser();
+        let bytes = b"";
+
+        parser.parse_numstat(bytes).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn parse_numstat_single_value() {
+        let parser = create_parser();
+        let bytes = b"10";
+
+        parser.parse_numstat(bytes).unwrap();
+    }
 }
