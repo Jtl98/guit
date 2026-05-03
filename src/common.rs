@@ -93,7 +93,7 @@ pub struct Branches {
     pub other: BTreeSet<Branch>,
 }
 
-#[derive(Clone, Eq)]
+#[derive(Clone, Debug, Eq)]
 pub struct Branch {
     pub name: String,
     pub area: BranchArea,
@@ -128,7 +128,7 @@ impl PartialOrd for Branch {
     }
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BranchArea {
     Local,
     Remote(String),

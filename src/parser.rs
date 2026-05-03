@@ -281,4 +281,77 @@ mod tests {
 
         assert_eq!(result, vec![]);
     }
+
+    #[test]
+    fn parse_local_branches_empty() {
+        let parser = create_parser();
+        let bytes = b"";
+
+        let (current, other) = parser.parse_local_branches(bytes);
+
+        assert!(current.is_empty());
+        assert!(other.is_empty());
+    }
+
+    #[test]
+    fn parse_local_branches_single_current() {
+        let parser = create_parser();
+        let bytes = b"* main\n";
+
+        let (current, other) = parser.parse_local_branches(bytes);
+
+        assert_eq!(current, "main");
+        assert!(other.is_empty());
+    }
+
+    #[test]
+    fn parse_local_branches_single_other() {
+        let parser = create_parser();
+        let bytes = b"  main\n";
+
+        let (current, other) = parser.parse_local_branches(bytes);
+
+        let expected = BTreeSet::from([Branch {
+            name: "main".to_owned(),
+            area: BranchArea::Local,
+        }]);
+        assert!(current.is_empty());
+        assert_eq!(other, expected);
+    }
+
+    #[test]
+    fn parse_local_branches_current_and_others() {
+        let parser = create_parser();
+        let bytes = b"* main\n  develop\n  feature/foo\n";
+
+        let (current, other) = parser.parse_local_branches(bytes);
+
+        let expected = BTreeSet::from([
+            Branch {
+                name: "feature/foo".to_owned(),
+                area: BranchArea::Local,
+            },
+            Branch {
+                name: "develop".to_owned(),
+                area: BranchArea::Local,
+            },
+        ]);
+        assert_eq!(current, "main");
+        assert_eq!(other, expected);
+    }
+
+    #[test]
+    fn parse_local_branches_ignores_extra_spaces() {
+        let parser = create_parser();
+        let bytes = b"   main\n";
+
+        let (current, other) = parser.parse_local_branches(bytes);
+
+        let expected = BTreeSet::from([Branch {
+            name: " main".to_owned(),
+            area: BranchArea::Local,
+        }]);
+        assert!(current.is_empty());
+        assert_eq!(other, expected);
+    }
 }
