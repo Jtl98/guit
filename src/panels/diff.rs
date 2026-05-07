@@ -2,7 +2,7 @@ use crate::{
     common::{Action, Diff, DiffNumstat, HunkDiff, StringDiff},
     panels::Show,
 };
-use eframe::egui::{CentralPanel, Color32, Context, Label, RichText, ScrollArea, TextWrapMode, Ui};
+use eframe::egui::{CentralPanel, Color32, Label, RichText, ScrollArea, TextWrapMode, Ui};
 
 pub struct DiffPanel<'a> {
     diff: &'a Diff,
@@ -83,8 +83,8 @@ impl<'a> DiffPanel<'a> {
 }
 
 impl<'a> Show for DiffPanel<'a> {
-    fn show(&mut self, ctx: &Context, _action: &mut Option<Action>) {
-        CentralPanel::default().show(ctx, |ui| match self.diff {
+    fn show(&mut self, ui: &mut Ui, _action: &mut Option<Action>) {
+        CentralPanel::default().show_inside(ui, |ui| match self.diff {
             Diff::Binary => self.show_binary(ui),
             Diff::String(diff) => self.show_string(ui, diff),
             Diff::Hunk(diff) => self.show_hunk(ui, diff),

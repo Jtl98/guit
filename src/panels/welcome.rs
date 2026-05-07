@@ -6,7 +6,7 @@ use crate::{
     config::Config,
     panels::{AddWidget, Show},
 };
-use eframe::egui::{Button, CentralPanel, Context, RichText, ScrollArea, TextWrapMode, Vec2};
+use eframe::egui::{Button, CentralPanel, RichText, ScrollArea, TextWrapMode, Ui, Vec2};
 
 pub struct WelcomePanel<'a> {
     config: &'a Config,
@@ -19,8 +19,8 @@ impl<'a> WelcomePanel<'a> {
 }
 
 impl<'a> Show for WelcomePanel<'a> {
-    fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
-        CentralPanel::default().show(ctx, |ui| {
+    fn show(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
+        CentralPanel::default().show_inside(ui, |ui| {
             ui.spacing_mut().button_padding = Vec2::new(16.0, 8.0);
             ui.add_space(32.0);
 

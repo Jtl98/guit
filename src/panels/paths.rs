@@ -6,8 +6,7 @@ use crate::{
     panels::Show,
 };
 use eframe::egui::{
-    Align, Button, Context, Key, Layout, ScrollArea, SidePanel, Ui,
-    collapsing_header::CollapsingState,
+    Align, Button, Key, Layout, Panel, ScrollArea, Ui, collapsing_header::CollapsingState,
 };
 
 pub struct PathsPanel<'a> {
@@ -17,7 +16,7 @@ pub struct PathsPanel<'a> {
 }
 
 impl<'a> PathsPanel<'a> {
-    const MIN_PANEL_WIDTH: f32 = 128.0;
+    const MIN_PANEL_SIZE: f32 = 128.0;
 
     pub fn new(
         is_executing: bool,
@@ -109,13 +108,13 @@ impl<'a> PathsPanel<'a> {
 }
 
 impl<'a> Show for PathsPanel<'a> {
-    fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
-        let max_panel_width = ctx.content_rect().width() * 0.5;
+    fn show(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
+        let max_panel_size = ui.content_rect().width() * 0.5;
 
-        SidePanel::left("paths")
-            .min_width(Self::MIN_PANEL_WIDTH)
-            .max_width(max_panel_width)
-            .show(ctx, |ui| {
+        Panel::left("paths")
+            .min_size(Self::MIN_PANEL_SIZE)
+            .max_size(max_panel_size)
+            .show_inside(ui, |ui| {
                 self.show_unstaged(ui, action);
 
                 ui.separator();

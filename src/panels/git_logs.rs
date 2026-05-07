@@ -3,7 +3,7 @@ use crate::{
     panels::Show,
 };
 use eframe::egui::{
-    CentralPanel, Context, Label, RichText, ScrollArea, TextStyle,
+    CentralPanel, Label, RichText, ScrollArea, TextStyle, Ui,
     scroll_area::{ScrollAreaOutput, State},
 };
 use std::{cmp::Reverse, ops::Range};
@@ -25,8 +25,8 @@ impl<'a> GitLogs<'a> {
 }
 
 impl<'a> Show for GitLogs<'a> {
-    fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
-        CentralPanel::default().show(ctx, |ui| {
+    fn show(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
+        CentralPanel::default().show_inside(ui, |ui| {
             let row_height = ui.text_style_height(&TextStyle::Monospace);
             let total_dates = self.dated_logs.len();
             let total_logs = self.dated_logs.values().map(Vec::len).sum::<usize>();

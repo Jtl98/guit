@@ -7,10 +7,10 @@ pub mod top;
 pub mod welcome;
 
 use crate::common::Action;
-use eframe::egui::{Button, Context, IntoAtoms, Response, Ui};
+use eframe::egui::{Button, IntoAtoms, Response, Ui};
 
 pub trait Show {
-    fn show(&mut self, ctx: &Context, action: &mut Option<Action>);
+    fn show(&mut self, ui: &mut Ui, action: &mut Option<Action>);
 }
 
 trait AddWidget {
