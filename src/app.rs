@@ -16,7 +16,10 @@ use crate::{
     },
     repo::Repo,
 };
-use eframe::{Frame, egui::Context};
+use eframe::{
+    Frame,
+    egui::{Context, Ui},
+};
 use log::{error, warn};
 use rfd::FileDialog;
 use std::{
@@ -255,7 +258,7 @@ impl App {
 }
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &Context, _frame: &mut Frame) {
+    fn ui(&mut self, ui: &mut Ui, _: &mut Frame) {
         let mut action = None;
 
         if let Some(repo) = &self.repo {
@@ -267,7 +270,7 @@ impl eframe::App for App {
                 &mut self.branch_name,
                 &mut self.branch_filter,
             )
-            .show(ctx, &mut action);
+            .show(ui, &mut action);
 
             BottomPanel::new(
                 self.is_executing,
@@ -277,26 +280,26 @@ impl eframe::App for App {
                 &mut self.commit_body,
                 &mut self.show_commit_body,
             )
-            .show(ctx, &mut action);
+            .show(ui, &mut action);
 
             if self.show_logs {
-                AppLogsPanel.show(ctx, &mut action);
+                AppLogsPanel.show(ui, &mut action);
             }
 
             PathsPanel::new(self.is_executing, &repo.diffs, &mut self.selected_key)
-                .show(ctx, &mut action);
+                .show(ui, &mut action);
 
             if let Some(selected_key) = &self.selected_key {
                 if let Some(diff) = repo.diffs.get(selected_key) {
-                    DiffPanel::new(diff).show(ctx, &mut action);
+                    DiffPanel::new(diff).show(ui, &mut action);
                 }
             } else {
-                GitLogs::new(&repo.dated_logs, self.logs_scroll_threshold).show(ctx, &mut action);
+                GitLogs::new(&repo.dated_logs, self.logs_scroll_threshold).show(ui, &mut action);
             }
         } else {
-            WelcomePanel::new(&self.config).show(ctx, &mut action);
+            WelcomePanel::new(&self.config).show(ui, &mut action);
         }
 
-        self.update(action, ctx);
+        self.update(action, ui.ctx());
     }
 }

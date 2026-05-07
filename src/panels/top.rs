@@ -6,7 +6,7 @@ use crate::{
     },
     panels::{AddWidget, Show},
 };
-use eframe::egui::{Align, ComboBox, Context, Key, Layout, Popup, TextEdit, TopBottomPanel, Ui};
+use eframe::egui::{Align, ComboBox, Key, Layout, Panel, Popup, TextEdit, Ui};
 
 pub struct TopPanel<'a> {
     is_executing: bool,
@@ -112,8 +112,8 @@ impl<'a> TopPanel<'a> {
 }
 
 impl<'a> Show for TopPanel<'a> {
-    fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
-        TopBottomPanel::top("top").show(ctx, |ui| {
+    fn show(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
+        Panel::top("top").show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 ui.style_mut().spacing.item_spacing.x = 4.0;
 

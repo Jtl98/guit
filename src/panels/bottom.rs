@@ -5,9 +5,7 @@ use crate::{
     },
     panels::{AddWidget, Show},
 };
-use eframe::egui::{
-    Align, Align2, Context, Key, Layout, TextEdit, TextStyle, TopBottomPanel, Ui, Vec2, Window,
-};
+use eframe::egui::{Align, Align2, Key, Layout, Panel, TextEdit, TextStyle, Ui, Vec2, Window};
 use std::path::Path;
 
 pub struct BottomPanel<'a> {
@@ -101,8 +99,8 @@ impl<'a> BottomPanel<'a> {
 }
 
 impl<'a> Show for BottomPanel<'a> {
-    fn show(&mut self, ctx: &Context, action: &mut Option<Action>) {
-        TopBottomPanel::bottom("bottom").show(ctx, |ui| {
+    fn show(&mut self, ui: &mut Ui, action: &mut Option<Action>) {
+        Panel::bottom("bottom").show_inside(ui, |ui| {
             ui.horizontal(|ui| {
                 self.show_commit_body(ui);
 
