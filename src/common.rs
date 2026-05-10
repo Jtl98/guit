@@ -56,7 +56,20 @@ pub struct HunkDiff {
 #[derive(Debug, PartialEq)]
 pub struct Hunk {
     pub header: String,
-    pub lines: Vec<String>,
+    pub lines: Vec<HunkLine>,
+}
+
+#[derive(Debug, PartialEq)]
+pub struct HunkLine {
+    pub line_type: LineType,
+    pub content: String,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum LineType {
+    Addition,
+    Deletion,
+    Context,
 }
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
