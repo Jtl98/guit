@@ -1,4 +1,6 @@
-use crate::common::{self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Hunk, Log};
+use crate::common::{
+    self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Hunk, HunkLine, LineType, Log,
+};
 use std::collections::BTreeSet;
 
 #[derive(Default)]
@@ -32,8 +34,20 @@ impl GitParser {
                     header: line.to_owned(),
                     lines: Vec::new(),
                 });
-            } else if let Some(ref mut hunk) = current_hunk {
-                hunk.lines.push(line.to_owned());
+            } else if let Some(ref mut hunk) = current_hunk
+                && let Some((prefix, content)) = line.split_at_checked(1)
+            {
+                let line_type = match prefix {
+                    "+" => LineType::Addition,
+                    "-" => LineType::Deletion,
+                    _ => LineType::Context,
+                };
+                let hunk_line = HunkLine {
+                    line_type,
+                    content: content.to_owned(),
+                };
+
+                hunk.lines.push(hunk_line);
             }
         }
 
@@ -226,7 +240,16 @@ mod tests {
 
         let expected = vec![Hunk {
             header: "@@ -1 +1 @@".to_owned(),
-            lines: vec!["-old".to_owned(), "+new".to_owned()],
+            lines: vec![
+                HunkLine {
+                    line_type: LineType::Deletion,
+                    content: "old".to_owned(),
+                },
+                HunkLine {
+                    line_type: LineType::Addition,
+                    content: "new".to_owned(),
+                },
+            ],
         }];
         assert_eq!(result, expected);
     }
@@ -246,7 +269,16 @@ mod tests {
 
         let expected = vec![Hunk {
             header: "@@ -1 +1 @@".to_owned(),
-            lines: vec!["-old".to_owned(), "+new".to_owned()],
+            lines: vec![
+                HunkLine {
+                    line_type: LineType::Deletion,
+                    content: "old".to_owned(),
+                },
+                HunkLine {
+                    line_type: LineType::Addition,
+                    content: "new".to_owned(),
+                },
+            ],
         }];
         assert_eq!(result, expected);
     }

@@ -1,5 +1,5 @@
 use crate::{
-    common::{Action, Diff, DiffNumstat, HunkDiff, StringDiff},
+    common::{Action, Diff, DiffNumstat, HunkDiff, LineType, StringDiff},
     panels::Show,
 };
 use eframe::egui::{CentralPanel, Color32, Label, RichText, ScrollArea, TextWrapMode, Ui};
@@ -65,14 +65,12 @@ impl<'a> DiffPanel<'a> {
                 ui.add(header_label);
 
                 for line in &hunk.lines {
-                    let line_colour = if line.starts_with('+') {
-                        Color32::GREEN
-                    } else if line.starts_with('-') {
-                        Color32::RED
-                    } else {
-                        ui.visuals().text_color()
+                    let line_colour = match line.line_type {
+                        LineType::Addition => Color32::GREEN,
+                        LineType::Deletion => Color32::RED,
+                        LineType::Context => ui.visuals().text_color(),
                     };
-                    let line_text = RichText::new(line).monospace().color(line_colour);
+                    let line_text = RichText::new(&line.content).monospace().color(line_colour);
                     let line_label = Label::new(line_text).wrap_mode(TextWrapMode::Extend);
 
                     ui.add(line_label);
