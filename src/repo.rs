@@ -5,9 +5,9 @@ use crate::{
     executor::GitExecutor,
     git::Git,
 };
-use std::{cmp::Reverse, fs, path::PathBuf};
+use git2::{BranchType, Repository};
+use std::{cmp::Reverse, collections::BTreeSet, fs, path::PathBuf};
 
-#[derive(Default)]
 pub struct Repo {
     pub dir: PathBuf,
     pub diffs: Diffs,
@@ -17,9 +17,12 @@ pub struct Repo {
 }
 
 impl Repo {
+    const HEAD: &str = "HEAD";
+
     pub fn new(git: &Git<GitExecutor>, dir: PathBuf) -> anyhow::Result<Self> {
+        let repository = Repository::open(&dir)?;
         let diffs = Self::diffs(git)?;
-        let branches = Self::branches(git)?;
+        let branches = Self::branches(&repository)?;
         let logs_skipped = 0;
         let dated_logs = git.log_max_count_skip(logs_skipped)?.into_iter().fold(
             DatedLogs::new(),
@@ -55,28 +58,61 @@ impl Repo {
         logs.entry(date).or_default().push(log);
     }
 
-    fn branches(git: &Git<GitExecutor>) -> anyhow::Result<Branches> {
-        let (current, local_branches) = git.branch()?;
-        let remote_branches = git.branch_remotes()?;
-        let remotes = git.remote()?;
-
-        let mut other = local_branches;
-
-        for branch in &remote_branches {
-            for remote in &remotes {
-                if let Some(name) = branch.strip_prefix(&format!("  {remote}/"))
-                    && !name.contains(' ')
-                    && name != current
-                {
-                    other.insert(Branch {
-                        name: name.to_owned(),
-                        area: BranchArea::Remote(remote.to_owned()),
-                    });
-                }
+    fn branches(repository: &Repository) -> anyhow::Result<Branches> {
+        let head = repository.head()?;
+        let current = if repository.head_detached()? {
+            match head.target() {
+                Some(oid) => &format!("detached at {}", oid),
+                None => "detached",
             }
+        } else {
+            head.shorthand()?
+        };
+
+        let is_current_or_head = |name: &str| name == current || name == Self::HEAD;
+        let mut other = BTreeSet::new();
+
+        let local_branches = repository.branches(Some(BranchType::Local))?;
+        for local_branch in local_branches {
+            let (branch, _) = local_branch?;
+            let name = branch.get().shorthand()?;
+
+            if is_current_or_head(name) {
+                continue;
+            }
+
+            other.insert(Branch {
+                name: name.to_owned(),
+                area: BranchArea::Local,
+            });
         }
 
-        Ok(Branches { current, other })
+        let remote_branches = repository.branches(Some(BranchType::Remote))?;
+        for remote_branch in remote_branches {
+            let (branch, _) = remote_branch?;
+            let refname = branch.get().name()?;
+            let remote = repository.branch_remote_name(refname)?;
+            let remote = remote.as_str()?;
+            let remote_delimiter = format!("{}/", remote);
+
+            let Some((_, name)) = refname.split_once(&remote_delimiter) else {
+                continue;
+            };
+
+            if is_current_or_head(name) {
+                continue;
+            }
+
+            other.insert(Branch {
+                name: name.to_owned(),
+                area: BranchArea::Remote(remote.to_owned()),
+            });
+        }
+
+        Ok(Branches {
+            current: current.to_owned(),
+            other,
+        })
     }
 
     fn diffs(git: &Git<GitExecutor>) -> anyhow::Result<Diffs> {

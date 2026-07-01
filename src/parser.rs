@@ -1,7 +1,4 @@
-use crate::common::{
-    self, Branch, BranchArea, DiffArea, DiffKey, DiffNumstat, Hunk, HunkLine, LineType, Log,
-};
-use std::collections::BTreeSet;
+use crate::common::{self, DiffArea, DiffKey, DiffNumstat, Hunk, HunkLine, LineType, Log};
 
 #[derive(Default)]
 pub struct GitParser;
@@ -56,27 +53,6 @@ impl GitParser {
         }
 
         hunks
-    }
-
-    pub fn parse_local_branches(&self, bytes: &[u8]) -> (String, BTreeSet<Branch>) {
-        let mut current = String::new();
-        let mut other = BTreeSet::new();
-
-        let branches = common::split_by_newline::<Vec<String>>(bytes);
-        for branch in branches {
-            let name = branch[2..].to_owned();
-
-            if branch.starts_with("* ") {
-                current = name;
-            } else {
-                other.insert(Branch {
-                    name,
-                    area: BranchArea::Local,
-                });
-            }
-        }
-
-        (current, other)
     }
 
     pub fn parse_logs(&self, bytes: &[u8]) -> Vec<Log> {
@@ -311,79 +287,6 @@ mod tests {
         let result = parser.parse_hunks(bytes);
 
         assert_eq!(result, vec![]);
-    }
-
-    #[test]
-    fn parse_local_branches_empty() {
-        let parser = create_parser();
-        let bytes = b"";
-
-        let (current, other) = parser.parse_local_branches(bytes);
-
-        assert!(current.is_empty());
-        assert!(other.is_empty());
-    }
-
-    #[test]
-    fn parse_local_branches_single_current() {
-        let parser = create_parser();
-        let bytes = b"* main\n";
-
-        let (current, other) = parser.parse_local_branches(bytes);
-
-        assert_eq!(current, "main");
-        assert!(other.is_empty());
-    }
-
-    #[test]
-    fn parse_local_branches_single_other() {
-        let parser = create_parser();
-        let bytes = b"  main\n";
-
-        let (current, other) = parser.parse_local_branches(bytes);
-
-        let expected = BTreeSet::from([Branch {
-            name: "main".to_owned(),
-            area: BranchArea::Local,
-        }]);
-        assert!(current.is_empty());
-        assert_eq!(other, expected);
-    }
-
-    #[test]
-    fn parse_local_branches_current_and_others() {
-        let parser = create_parser();
-        let bytes = b"* main\n  develop\n  feature/foo\n";
-
-        let (current, other) = parser.parse_local_branches(bytes);
-
-        let expected = BTreeSet::from([
-            Branch {
-                name: "feature/foo".to_owned(),
-                area: BranchArea::Local,
-            },
-            Branch {
-                name: "develop".to_owned(),
-                area: BranchArea::Local,
-            },
-        ]);
-        assert_eq!(current, "main");
-        assert_eq!(other, expected);
-    }
-
-    #[test]
-    fn parse_local_branches_ignores_extra_spaces() {
-        let parser = create_parser();
-        let bytes = b"   main\n";
-
-        let (current, other) = parser.parse_local_branches(bytes);
-
-        let expected = BTreeSet::from([Branch {
-            name: " main".to_owned(),
-            area: BranchArea::Local,
-        }]);
-        assert!(current.is_empty());
-        assert_eq!(other, expected);
     }
 
     #[test]
