@@ -1,10 +1,9 @@
 use crate::{
-    common::{self, Branch, DiffArea, DiffKey, DiffNumstat, Hunk, Log},
+    common::{DiffArea, DiffKey, DiffNumstat, Hunk, Log},
     executor::Execute,
     parser::GitParser,
 };
 use std::{
-    collections::BTreeSet,
     path::{Path, PathBuf},
     process::Output,
 };
@@ -46,18 +45,6 @@ where
 
     pub fn add_all(&self) {
         let _ = self.executor.execute_and_log_here(["add", "--all"]);
-    }
-
-    pub fn branch(&self) -> anyhow::Result<(String, BTreeSet<Branch>)> {
-        let Output { stdout, .. } = self.executor.execute_here(["branch"])?;
-        let branches = self.parser.parse_local_branches(&stdout);
-
-        Ok(branches)
-    }
-
-    pub fn branch_remotes(&self) -> anyhow::Result<Vec<String>> {
-        let Output { stdout, .. } = self.executor.execute_here(["branch", "--remotes"])?;
-        Ok(common::split_by_newline(&stdout))
     }
 
     pub fn commit(&self, subject: &str) {
@@ -155,11 +142,6 @@ where
 
     pub fn push(&self) {
         let _ = self.executor.execute_and_log_here(["push"]);
-    }
-
-    pub fn remote(&self) -> anyhow::Result<Vec<String>> {
-        let Output { stdout, .. } = self.executor.execute_here(["remote"])?;
-        Ok(common::split_by_newline(&stdout))
     }
 
     pub fn reset_soft_head_1(&self) {
